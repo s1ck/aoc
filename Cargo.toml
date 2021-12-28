@@ -3,6 +3,7 @@ name = "aoc"
 version = "0.1.0"
 authors = ["Martin Junghanns <github@s1ck.dev>"]
 description = "Advent of Code solutions for @s1ck"
+publish = false
 edition = "2021"
 license = "MIT"
 default-run = "aoc2021"
