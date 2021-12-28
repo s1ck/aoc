@@ -9,12 +9,16 @@ register!(
     }
 );
 
-fn part1(items: &[Input]) -> Output {
-    0
+fn part1(measurements: &[Input]) -> Output {
+    measurements.array_windows().filter(|[a, b]| a < b).count()
 }
 
-fn part2(items: &[Input]) -> Output {
-    0
+fn part2(measurements: &[Input]) -> Output {
+    measurements
+        .array_windows()
+        // (a + b + c) < (b + c + d) <=> a < d
+        .filter(|[a, _, _, d]| a < d)
+        .count()
 }
 
 #[cfg(test)]
@@ -25,19 +29,26 @@ mod tests {
 
     #[test]
     fn test_ex() {
-        let input = r#"
-
-        "#;
+        let input = r#"199
+                       200
+                       208
+                       210
+                       200
+                       207
+                       240
+                       269
+                       260
+                       263"#;
         let (res1, res2) = Solver::run_on(input);
-        assert_eq!(res1, 0);
-        assert_eq!(res2, 0);
+        assert_eq!(res1, 7);
+        assert_eq!(res2, 5);
     }
 
     #[test]
     fn test() {
         let (res1, res2) = Solver::run_on_input();
-        assert_eq!(res1, 0);
-        assert_eq!(res2, 0);
+        assert_eq!(res1, 1316);
+        assert_eq!(res2, 1344);
     }
 
     #[bench]
