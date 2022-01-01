@@ -3,3 +3,4 @@ Cargo.lock
 .sessioncookie
 .cargoinstalled
 *_bench.md
+*_bench.jsonld
