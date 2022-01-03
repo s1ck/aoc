@@ -4,6 +4,7 @@
     bool_to_option,
     control_flow_enum,
     drain_filter,
+    int_abs_diff,
     iter_partition_in_place,
     let_else,
     mixed_integer_ops,
