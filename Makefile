@@ -11,7 +11,8 @@ ifeq ($(origin .RECIPEPREFIX), undefined)
 endif
 .RECIPEPREFIX = >
 
-APP := aoc2021
+YEAR:= 2020
+APP := aoc$(YEAR)
 
 CARGOFLAGS ?=
 
@@ -63,7 +64,7 @@ README.md: README.md.tpl aoc2021_bench.md
 
 # download inputs
 i%:
-> curl --cookie "session=$$(cat .sessioncookie)" "https://adventofcode.com/2021/day/$*/input" > src/bin/$(APP)/input/day$*.txt
+> curl --cookie "session=$$(cat .sessioncookie)" "https://adventofcode.com/$(YEAR)/day/$*/input" > src/bin/$(APP)/input/day$*.txt
 > bat src/bin/$(APP)/input/day$*.txt
 
 # generate source file
