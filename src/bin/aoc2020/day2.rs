@@ -1,25 +1,45 @@
 use std::{num::ParseIntError, str::FromStr};
 
-type Input = Line;
+use aoc::{lines, PuzzleInput};
+
+type Input = Passwords;
 type Output = usize;
 
 register!(
     "input/day2.txt";
-    (input: input!(parse Input)) -> Output {
-        part1(&input);
-        part2(&input);
+    (input: input!(verbatim Input)) -> Output {
+        part1(input);
+        part2(input);
     }
 );
 
-fn part1(items: &[Input]) -> Output {
-    items.iter().filter(|l| l.in_range).count()
+fn part1(items: (usize, usize)) -> Output {
+    items.0
 }
 
-fn part2(items: &[Input]) -> Output {
-    items.iter().filter(|l| l.at_index).count()
+fn part2(items: (usize, usize)) -> Output {
+    items.1
 }
 
-pub struct Line {
+pub struct Passwords;
+
+impl PuzzleInput for Passwords {
+    type Out = (Output, Output);
+
+    fn from_input(input: &str) -> Self::Out {
+        lines(input).map(|line| line.parse::<Line>().unwrap()).fold(
+            (0, 0),
+            |(in_range_cnt, at_index_cnt), Line { in_range, at_index }| {
+                (
+                    in_range_cnt + usize::from(in_range),
+                    at_index_cnt + usize::from(at_index),
+                )
+            },
+        )
+    }
+}
+
+struct Line {
     in_range: bool,
     at_index: bool,
 }
@@ -78,12 +98,12 @@ mod tests {
     #[bench]
     fn bench_pt1(b: &mut Bencher) {
         let input = Solver::parse_input(Solver::puzzle_input());
-        b.iter(|| part1(&input));
+        b.iter(|| part1(input));
     }
 
     #[bench]
     fn bench_pt2(b: &mut Bencher) {
         let input = Solver::parse_input(Solver::puzzle_input());
-        b.iter(|| part2(&input));
+        b.iter(|| part2(input));
     }
 }
