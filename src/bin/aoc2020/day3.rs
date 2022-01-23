@@ -20,12 +20,11 @@ fn part1(
         width,
     }: &Input,
 ) -> Output {
-    let offset = width - 1;
     let mut count = 0;
 
     for (row, line) in field.iter().enumerate().take(*height).skip(1) {
-        let idx = offset - (width + row * 3) % width;
-        let mask = 1 << idx;
+        let idx = (row * 3) % width;
+        let mask = 1 << (31 - idx);
         if line & mask == mask {
             count += 1;
         }
@@ -41,46 +40,45 @@ fn part2(
         width,
     }: &Input,
 ) -> Output {
-    let offset = width - 1;
-    let mut slope_1 = 0; // right 1, down 1
-    let mut slope_2 = 0; // right 3, down 1
-    let mut slope_3 = 0; // right 5, down 1
-    let mut slope_4 = 0; // right 7, down 1
-    let mut slope_5 = 0; // right 1, down 2
+    let mut slope_1 = 0;
+    let mut slope_2 = 0;
+    let mut slope_3 = 0;
+    let mut slope_4 = 0;
+    let mut slope_5 = 0;
 
     for (row, line) in field.iter().enumerate().take(*height).skip(1) {
-        // slope 1
-        let idx = offset - (width + row) % width;
-        let mask = 1 << idx;
+        // slope 1: right 1, down 1
+        let idx = row % width;
+        let mask = 1 << (31 - idx);
         if line & mask == mask {
             slope_1 += 1;
         }
 
-        // slope 2
-        let idx = offset - (width + row * 3) % width;
-        let mask = 1 << idx;
+        // slope 2: right 3, down 1
+        let idx = (row * 3) % width;
+        let mask = 1 << (31 - idx);
         if line & mask == mask {
             slope_2 += 1;
         }
 
-        // slope 3
-        let idx = offset - (width + row * 5) % width;
-        let mask = 1 << idx;
+        // slope 3: right 5, down 1
+        let idx = (row * 5) % width;
+        let mask = 1 << (31 - idx);
         if line & mask == mask {
             slope_3 += 1;
         }
 
-        // slope 4
-        let idx = offset - (width + row * 7) % width;
-        let mask = 1 << idx;
+        // slope 4: right 7, down 1
+        let idx = (row * 7) % width;
+        let mask = 1 << (31 - idx);
         if line & mask == mask {
             slope_4 += 1;
         }
 
-        // slope 5
+        // slope 5: right 1, down 2
         if row % 2 == 0 {
-            let idx = offset - (width + row / 2) % width;
-            let mask = 1 << idx;
+            let idx = (row / 2) % width;
+            let mask = 1 << (31 - idx);
             if line & mask == mask {
                 slope_5 += 1;
             }
@@ -121,9 +119,7 @@ impl PuzzleInput for Field {
 
             let mut enc = 0_u32;
             for (j, &b) in line.as_bytes().iter().enumerate() {
-                if b == b'#' {
-                    enc |= 1 << (width - j - 1);
-                }
+                enc |= u32::from(b == b'#') << (31 - j);
             }
             field[i] = enc;
         }
@@ -166,7 +162,7 @@ mod tests {
     fn test() {
         let (res1, res2) = Solver::run_on_input();
         assert_eq!(res1, 289);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 5522401584);
     }
 
     #[bench]
