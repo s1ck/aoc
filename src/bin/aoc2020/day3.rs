@@ -1,0 +1,190 @@
+use std::fmt::Display;
+
+use aoc::{lines, PuzzleInput};
+
+type Input = Field;
+type Output = usize;
+
+register!(
+    "input/day3.txt";
+    (input: input!(verbatim Input)) -> Output {
+        part1(&input);
+        part2(&input);
+    }
+);
+
+fn part1(
+    Input {
+        field,
+        height,
+        width,
+    }: &Input,
+) -> Output {
+    let offset = width - 1;
+    let mut count = 0;
+
+    for (row, line) in field.iter().enumerate().take(*height).skip(1) {
+        let idx = offset - (width + row * 3) % width;
+        let mask = 1 << idx;
+        if line & mask == mask {
+            count += 1;
+        }
+    }
+
+    count
+}
+
+fn part2(
+    Input {
+        field,
+        height,
+        width,
+    }: &Input,
+) -> Output {
+    let offset = width - 1;
+    let mut slope_1 = 0; // right 1, down 1
+    let mut slope_2 = 0; // right 3, down 1
+    let mut slope_3 = 0; // right 5, down 1
+    let mut slope_4 = 0; // right 7, down 1
+    let mut slope_5 = 0; // right 1, down 2
+
+    for (row, line) in field.iter().enumerate().take(*height).skip(1) {
+        // slope 1
+        let idx = offset - (width + row) % width;
+        let mask = 1 << idx;
+        if line & mask == mask {
+            slope_1 += 1;
+        }
+
+        // slope 2
+        let idx = offset - (width + row * 3) % width;
+        let mask = 1 << idx;
+        if line & mask == mask {
+            slope_2 += 1;
+        }
+
+        // slope 3
+        let idx = offset - (width + row * 5) % width;
+        let mask = 1 << idx;
+        if line & mask == mask {
+            slope_3 += 1;
+        }
+
+        // slope 4
+        let idx = offset - (width + row * 7) % width;
+        let mask = 1 << idx;
+        if line & mask == mask {
+            slope_4 += 1;
+        }
+
+        // slope 5
+        if row % 2 == 0 {
+            let idx = offset - (width + row / 2) % width;
+            let mask = 1 << idx;
+            if line & mask == mask {
+                slope_5 += 1;
+            }
+        }
+    }
+
+    slope_1 * slope_2 * slope_3 * slope_4 * slope_5
+}
+
+const LINE_COUNT: usize = 323;
+
+pub struct Field {
+    field: [u32; LINE_COUNT],
+    height: usize,
+    width: usize,
+}
+
+impl Display for Field {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.field[0..self.height]
+            .iter()
+            .try_for_each(|line| writeln!(f, "{:032b}", line))
+    }
+}
+
+impl PuzzleInput for Field {
+    type Out = Self;
+
+    fn from_input(input: &str) -> Self::Out {
+        let mut field = [0_u32; LINE_COUNT];
+        let lines = lines(input);
+        let mut width = 0;
+        let mut height = 0;
+
+        for (i, line) in lines.enumerate() {
+            width = line.len();
+            height = i;
+
+            let mut enc = 0_u32;
+            for (j, &b) in line.as_bytes().iter().enumerate() {
+                if b == b'#' {
+                    enc |= 1 << (width - j - 1);
+                }
+            }
+            field[i] = enc;
+        }
+
+        Self {
+            field,
+            height: height + 1,
+            width,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use aoc::{Solution, SolutionExt};
+    use test::Bencher;
+
+    #[test]
+    fn test_ex() {
+        let input = r#"
+        ..##.......
+        #...#...#..
+        .#....#..#.
+        ..#.#...#.#
+        .#...##..#.
+        ..#.##.....
+        .#.#.#....#
+        .#........#
+        #.##...#...
+        #...##....#
+        .#..#...#.#
+        "#;
+        let (res1, res2) = Solver::run_on(input);
+        assert_eq!(res1, 7);
+        assert_eq!(res2, 336);
+    }
+
+    #[test]
+    fn test() {
+        let (res1, res2) = Solver::run_on_input();
+        assert_eq!(res1, 289);
+        assert_eq!(res2, 0);
+    }
+
+    #[bench]
+    fn bench_parsing(b: &mut Bencher) {
+        let input = Solver::puzzle_input();
+        b.bytes = input.len() as u64;
+        b.iter(|| Solver::parse_input(input));
+    }
+
+    #[bench]
+    fn bench_pt1(b: &mut Bencher) {
+        let input = Solver::parse_input(Solver::puzzle_input());
+        b.iter(|| part1(&input));
+    }
+
+    #[bench]
+    fn bench_pt2(b: &mut Bencher) {
+        let input = Solver::parse_input(Solver::puzzle_input());
+        b.iter(|| part2(&input));
+    }
+}
