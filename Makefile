@@ -11,7 +11,7 @@ ifeq ($(origin .RECIPEPREFIX), undefined)
 endif
 .RECIPEPREFIX = >
 
-YEAR:= 2020
+YEAR:= 2022
 APP := aoc$(YEAR)
 
 CARGOFLAGS ?=
@@ -51,7 +51,7 @@ target/release/%: .cargoinstalled Cargo.toml Cargo.lock src/lib.rs $(shell find 
 
 .PRECIOUS: target/release/% %_bench.jsonld
 
-README.md: README.md.tpl aoc2021_bench.md
+README.md: README.md.tpl aoc$(YEAR)_bench.md
 > m4 $< > $@
 
 .cargoinstalled:

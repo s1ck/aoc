@@ -2,6 +2,14 @@
 
 Solutions for AoC
 
+## 2022
+
+| Day     | Part      |      Mean [µs] | Throughput |
+|:--------|:----------|---------------:|-----------:|
+| `Day 1` | `parsing` | 54.271 ± 3.701 |  193 MiB/s |
+| `Day 1` | `pt1`     |  0.038 ± 0.001 |            |
+| `Day 1` | `pt2`     |   0.248 ± 0.04 |            |
+
 ## 2021
 
 | Day      | Part      |             Mean [µs] |    Throughput |
