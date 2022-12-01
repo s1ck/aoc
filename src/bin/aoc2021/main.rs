@@ -4,8 +4,6 @@
     control_flow_enum,
     drain_filter,
     iter_partition_in_place,
-    let_else,
-    mixed_integer_ops,
     test
 )]
 #![warn(

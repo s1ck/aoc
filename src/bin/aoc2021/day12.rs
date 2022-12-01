@@ -48,7 +48,7 @@ impl CaveSystem {
     }
 
     fn edges(&self, id: usize) -> &[usize] {
-        self.g.neighbors(id)
+        self.g.neighbors(id).as_slice()
     }
 
     fn dfs(
