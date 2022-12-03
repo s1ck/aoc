@@ -12,9 +12,10 @@ Solutions for AoC
 | `Day 2` | `parsing` | 62.177 ± 0.559 |  160 MiB/s |
 | `Day 2` | `pt1`     |  5.578 ± 0.305 |            |
 | `Day 2` | `pt2`     | 12.267 ± 0.983 |            |
-| `Day 3` | `parsing` | 16.252 ± 0.134 |  599 MiB/s |
-| `Day 3` | `pt1`     |  0.353 ± 0.003 |            |
-| `Day 3` | `pt2`     |  0.168 ± 0.001 |            |
+| `Day 3` | `parsing` | 15.789 ± 0.226 |  617 MiB/s |
+| `Day 3` | `pt1`     |   0.29 ± 0.001 |            |
+| `Day 3` | `pt2`     |  0.129 ± 0.001 |            |
+
 ## 2021
 
 | Day      | Part      |             Mean [µs] |    Throughput |

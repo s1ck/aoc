@@ -34,18 +34,16 @@ impl FromStr for Backpack {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        fn mask(comp: u64, c: char) -> u64 {
+        fn mask(comp: u64, c: u8) -> u64 {
             if c.is_ascii_lowercase() {
-                comp | 1 << ((c as u8) - 96)
+                comp | 1 << (c - 96)
             } else {
-                comp | 1 << ((c as u8) - 38)
+                comp | 1 << (c - 38)
             }
         }
         let (comp1, comp2) = s.split_at(s.len() / 2);
-        let (comp1, comp2) = (comp1.chars().zip(comp2.chars()))
-            .fold((0, 0), |(comp1, comp2), (c1, c2)| {
-                (mask(comp1, c1), mask(comp2, c2))
-            });
+        let comp1 = comp1.bytes().fold(0, |acc, c| mask(acc, c));
+        let comp2 = comp2.bytes().fold(0, |acc, c| mask(acc, c));
         Ok(Self(comp1, comp2))
     }
 }
