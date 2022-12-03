@@ -3,6 +3,7 @@
     array_windows,
     control_flow_enum,
     drain_filter,
+    iter_array_chunks,
     iter_partition_in_place,
     test
 )]
@@ -31,7 +32,7 @@ extern crate test;
 aoc_main!(
     1 => day1,
     2 => day2,
-    // 3 => day3,
+    3 => day3,
     // 4 => day4,
     // 5 => day5,
     // 6 => day6,
