@@ -90,12 +90,12 @@ pub struct As<T>(PhantomData<T>);
 
 impl<T> PuzzleInput for As<T>
 where
-    T: From<String>,
+    T: for<'a> From<&'a str>,
 {
     type Out = Vec<T>;
 
     fn from_input(input: &str) -> Self::Out {
-        lines(input).map(|l| T::from(String::from(l))).collect()
+        lines(input).map(|l| T::from(l)).collect()
     }
 }
 

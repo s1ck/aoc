@@ -65,8 +65,8 @@ impl AsRef<Self> for Word {
     }
 }
 
-impl From<String> for Word {
-    fn from(s: String) -> Self {
+impl From<&str> for Word {
+    fn from(s: &str) -> Self {
         s.bytes().map(|b| Bit::try_from(b).unwrap()).collect()
     }
 }
