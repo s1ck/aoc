@@ -12,7 +12,7 @@ register!(
 );
 
 fn part1(items: &[Input]) -> Output {
-    items.into_iter().map(|c| c.0).max().unwrap_or_default()
+    items.iter().map(|c| c.0).max().unwrap_or_default()
 }
 
 fn part2(items: &[Input]) -> Output {

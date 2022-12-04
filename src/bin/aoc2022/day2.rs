@@ -12,7 +12,7 @@ register!(
 );
 
 fn part1(items: &[Input]) -> Output {
-    items.iter().map(|game| game.play()).sum()
+    items.iter().map(Game::play).sum()
 }
 
 fn part2(items: &[Input]) -> Output {
@@ -23,7 +23,7 @@ pub struct Game(Move, Move, Outcome);
 
 impl Game {
     fn play(&self) -> Output {
-        let Game(first_move, second_move, _) = self;
+        let Self(first_move, second_move, _) = self;
         second_move.score()
             + second_move
                 .partial_cmp(first_move)
@@ -36,14 +36,11 @@ impl Game {
     }
 
     fn transform(&self) -> Self {
-        let Game(first_move, _, expected_outcome) = self;
+        let Self(first_move, _, expected_outcome) = self;
         let expected_move = match (first_move, expected_outcome) {
-            (Move::Rock, Outcome::Win) => Move::Paper,
-            (Move::Rock, Outcome::Lose) => Move::Scissors,
-            (Move::Paper, Outcome::Win) => Move::Scissors,
-            (Move::Paper, Outcome::Lose) => Move::Rock,
-            (Move::Scissors, Outcome::Win) => Move::Rock,
-            (Move::Scissors, Outcome::Lose) => Move::Paper,
+            (Move::Rock, Outcome::Lose) | (Move::Paper, Outcome::Win) => Move::Scissors,
+            (Move::Paper, Outcome::Lose) | (Move::Scissors, Outcome::Win) => Move::Rock,
+            (Move::Scissors, Outcome::Lose) | (Move::Rock, Outcome::Win) => Move::Paper,
             (_, Outcome::Draw) => self.0,
         };
         Self(self.0, expected_move, self.2)
@@ -59,39 +56,35 @@ impl FromStr for Game {
         let _ = chars.next(); // whitespace
         let right = chars.next().unwrap();
 
-        Ok(Game(left.into(), right.into(), right.into()))
+        Ok(Self(left.into(), right.into(), right.into()))
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Move {
-    Rock,
-    Paper,
-    Scissors,
+    Rock = 1,
+    Paper = 2,
+    Scissors = 3,
 }
 
 impl Move {
-    fn score(&self) -> Output {
-        match self {
-            Move::Rock => 1,
-            Move::Paper => 2,
-            Move::Scissors => 3,
-        }
+    fn score(self) -> Output {
+        self as Output
     }
 }
 
 impl PartialOrd for Move {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(match (self, other) {
-            (Move::Rock, Move::Rock) => Ordering::Equal,
-            (Move::Rock, Move::Paper) => Ordering::Less,
-            (Move::Rock, Move::Scissors) => Ordering::Greater,
-            (Move::Paper, Move::Rock) => Ordering::Greater,
-            (Move::Paper, Move::Paper) => Ordering::Equal,
-            (Move::Paper, Move::Scissors) => Ordering::Less,
-            (Move::Scissors, Move::Rock) => Ordering::Less,
-            (Move::Scissors, Move::Paper) => Ordering::Greater,
-            (Move::Scissors, Move::Scissors) => Ordering::Equal,
+            (Self::Rock, Self::Paper)
+            | (Self::Paper, Self::Scissors)
+            | (Self::Scissors, Self::Rock) => Ordering::Less,
+            (Self::Scissors, Self::Paper)
+            | (Self::Rock, Self::Scissors)
+            | (Self::Paper, Self::Rock) => Ordering::Greater,
+            (Self::Scissors, Self::Scissors)
+            | (Self::Paper, Self::Paper)
+            | (Self::Rock, Self::Rock) => Ordering::Equal,
         })
     }
 }
@@ -102,7 +95,7 @@ impl From<char> for Move {
             'A' | 'X' => Self::Rock,
             'B' | 'Y' => Self::Paper,
             'C' | 'Z' => Self::Scissors,
-            _ => panic!("Unexpected char: {value}"),
+            _ => unreachable!("Unexpected char: {value}"),
         }
     }
 }
@@ -120,7 +113,7 @@ impl From<char> for Outcome {
             'X' => Self::Lose,
             'Y' => Self::Draw,
             'Z' => Self::Win,
-            _ => panic!("Unexpected char: {value}"),
+            _ => unreachable!("Unexpected char: {value}"),
         }
     }
 }

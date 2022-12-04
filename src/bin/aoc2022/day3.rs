@@ -42,8 +42,8 @@ impl FromStr for Backpack {
             }
         }
         let (comp1, comp2) = s.split_at(s.len() / 2);
-        let comp1 = comp1.bytes().fold(0, |acc, c| mask(acc, c));
-        let comp2 = comp2.bytes().fold(0, |acc, c| mask(acc, c));
+        let comp1 = comp1.bytes().fold(0, mask);
+        let comp2 = comp2.bytes().fold(0, mask);
         Ok(Self(comp1, comp2))
     }
 }

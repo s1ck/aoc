@@ -206,7 +206,7 @@ impl ResultLine {
     where
         T: Display + 'static,
     {
-        Self::new(format!("Part {}", part), duration, Some(Box::new(solution)))
+        Self::new(format!("Part {part}"), duration, Some(Box::new(solution)))
     }
 
     pub fn note<T>(note: &T, duration: Duration) -> Self
