@@ -49,7 +49,7 @@ impl PuzzleInput for Unload {
         }
 
         fn move_crates(stacks: &mut Stacks, line: &str, crane: CrateMover) {
-            let mut tokens = line.split_whitespace();
+            let mut tokens = line.split_ascii_whitespace();
             let _ = tokens.next(); // 'move'
             let cnt = tokens.next().unwrap().parse::<usize>().unwrap();
             let _ = tokens.next(); // 'from'

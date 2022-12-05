@@ -18,7 +18,7 @@ Solutions for AoC
 | `Day 4` | `parsing` | 48.468 ± 0.286 |  234 MiB/s |
 | `Day 4` | `pt1`     |  1.225 ± 0.012 |            |
 | `Day 4` | `pt2`     |  0.723 ± 0.005 |            |
-| `Day 5` | `parsing` |  78.06 ± 2.327 |  126 MiB/s |
+| `Day 5` | `parsing` | 51.057 ± 4.123 |  194 MiB/s |
 | `Day 5` | `pt1`     |      0.018 ± 0 |            |
 | `Day 5` | `pt2`     |      0.018 ± 0 |            |
 
