@@ -1,4 +1,4 @@
-use std::{collections::HashSet, convert::Infallible, str::FromStr};
+use std::{convert::Infallible, str::FromStr};
 
 type Input = Buffer;
 type Output = usize;
@@ -25,7 +25,17 @@ fn find_marker<const N: usize>(buffer: &Input) -> Output {
         .as_bytes()
         .array_windows::<N>()
         .enumerate()
-        .take_while(|(i, arr)| HashSet::<&u8>::from_iter(arr.iter()).len() != N)
+        .take_while(|(i, arr)| {
+            let mut bit_set = 0_u32;
+            arr.iter().any(|b| {
+                let mask = 1 << b;
+                if bit_set & mask == mask {
+                    return true;
+                }
+                bit_set |= mask;
+                false
+            })
+        })
         .map(|(i, _)| i + N + 1)
         .last()
         .unwrap()
@@ -37,7 +47,12 @@ impl FromStr for Buffer {
     type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.to_string()))
+        // Mapping down chars to 1..= 26 to use them in the u32 bitset later.
+        // We can do the conversion lazily, but that'll cost a tiny, tiny bit
+        // of performance when solving.
+        let s = s.as_bytes().iter().map(|b| b - 96).collect::<Vec<_>>();
+        let s = unsafe { String::from_utf8_unchecked(s) };
+        Ok(Self(s))
     }
 }
 
