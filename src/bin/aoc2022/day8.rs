@@ -1,94 +1,172 @@
-type Input = Line;
+use aoc::{lines, PuzzleInput};
+
+type Input = Forest;
 type Output = usize;
 
 register!(
     "input/day8.txt";
-    (input: input!(Input)) -> Output {
+    (input: input!(verbatim Input)) -> Output {
         part1(&input);
         part2(&input);
     }
 );
 
-fn part1(items: &[Input]) -> Output {
-    fn is_visible(row: usize, col: usize, trees: &[Input]) -> bool {
-        let rows = trees.len();
-        let cols = trees[0].0.len();
-        let ctr = trees[row].0[col];
+fn part1(forest: &Input) -> Output {
+    let rows = &forest.rows;
+    let cols = &forest.cols;
+    let stride = forest.stride;
+    let total = stride * stride;
 
-        let t = (0..row).all(|r| trees[r].0[col] < ctr);
-        let b = (row + 1..rows).all(|r| trees[r].0[col] < ctr);
-        let l = (0..col).all(|c| trees[row].0[c] < ctr);
-        let r = (col + 1..cols).all(|c| trees[row].0[c] < ctr);
+    let mut visible = vec![0_u8; stride * stride];
 
-        t || b || l || r
+    for i in (0..total).step_by(stride) {
+        // '/' < '0' <=> 47_u8 < 48_u8
+        let mut max_tree_left = b'/';
+        for (j, tree) in rows.iter().enumerate().skip(i).take(stride) {
+            if *tree > max_tree_left {
+                visible[j] += 1;
+                max_tree_left = u8::max(max_tree_left, *tree);
+            }
+        }
+        let mut max_right = b'/';
+        for j in (i..i + stride).rev() {
+            if rows[j] > max_right {
+                visible[j] += 1;
+                max_right = u8::max(max_right, rows[j]);
+            }
+        }
     }
-
-    let rows = items.len();
-    let cols = items[0].0.len();
-    let mut cnt = 0;
-
-    for row in 1..rows - 1 {
-        for col in 1..cols - 1 {
-            if is_visible(row, col, items) {
-                cnt += 1;
+    for i in (0..total).step_by(stride) {
+        let mut max_tree_top = b'/';
+        for (j, tree) in cols.iter().enumerate().skip(i).take(stride) {
+            if *tree > max_tree_top {
+                let row_idx = stride * (j % stride) + (j / stride);
+                visible[row_idx] += 1;
+                max_tree_top = u8::max(max_tree_top, *tree);
+            }
+        }
+        let mut max_tree_bottom = b'/';
+        for j in (i..i + stride).rev() {
+            if cols[j] > max_tree_bottom {
+                let row_idx = stride * (j % stride) + (j / stride);
+                visible[row_idx] += 1;
+                max_tree_bottom = u8::max(max_tree_bottom, cols[j]);
             }
         }
     }
 
-    cnt + 2 * rows + 2 * (cols - 2)
+    visible.iter().filter(|v| **v > 0).count()
 }
 
-fn part2(items: &[Input]) -> Output {
-    fn scenic_score(row: usize, col: usize, trees: &[Input]) -> Output {
-        fn count((cnt, done): (Output, bool), n: u8, ctr: u8) -> (Output, bool) {
-            if !done && (n >= ctr) {
-                (cnt + 1, true)
-            } else if !done {
-                (cnt + 1, done)
-            } else {
-                (cnt, true)
+fn part2(forest: &Input) -> Output {
+    let rows = &forest.rows;
+    let cols = &forest.cols;
+    let stride = forest.stride;
+    let total = stride * stride;
+
+    let mut views = vec![1_usize; stride * stride];
+
+    for i in (0..total).step_by(stride) {
+        for j in i..i + stride {
+            // view to right
+            let mut k = j;
+            let mut view = 0;
+            loop {
+                if k + 1 == i + stride {
+                    break;
+                }
+                if rows[k + 1] >= rows[j] {
+                    view += 1;
+                    break;
+                }
+                view += 1;
+                k += 1;
             }
+            views[j] *= view;
+            // view to bottom
+            let mut k = j;
+            let mut view = 0;
+            loop {
+                if k + 1 == i + stride {
+                    break;
+                }
+                if cols[k + 1] >= cols[j] {
+                    view += 1;
+                    break;
+                }
+                view += 1;
+                k += 1;
+            }
+            views[(stride * (j % stride) + (j / stride))] *= view;
         }
-        let rows = trees.len();
-        let cols = trees[0].0.len();
-        let ctr = trees[row].0[col];
-
-        let t = (0..row)
-            .rev()
-            .fold((0, false), |acc, r| count(acc, trees[r].0[col], ctr))
-            .0;
-        let b = (row + 1..rows)
-            .fold((0, false), |acc, r| count(acc, trees[r].0[col], ctr))
-            .0;
-        let l = (0..col)
-            .rev()
-            .fold((0, false), |acc, c| count(acc, trees[row].0[c], ctr))
-            .0;
-        let r = (col + 1..cols)
-            .fold((0, false), |acc, c| count(acc, trees[row].0[c], ctr))
-            .0;
-
-        t * b * l * r
+        for j in (i..i + stride).rev() {
+            // view to left
+            let mut k = j;
+            let mut view = 0;
+            loop {
+                if k == i {
+                    break;
+                }
+                if rows[k - 1] >= rows[j] {
+                    view += 1;
+                    break;
+                }
+                view += 1;
+                k -= 1;
+            }
+            views[j] *= view;
+            // view to top
+            let mut k = j;
+            let mut view = 0;
+            loop {
+                if k == i {
+                    break;
+                }
+                if cols[k - 1] >= cols[j] {
+                    view += 1;
+                    break;
+                }
+                view += 1;
+                k -= 1;
+            }
+            views[(stride * (j % stride) + (j / stride))] *= view;
+        }
     }
 
-    let rows = items.len();
-    let cols = items[0].0.len();
-    let mut score = 0;
-
-    for row in 1..rows - 1 {
-        for col in 1..cols - 1 {
-            score = Output::max(score, scenic_score(row, col, items));
-        }
-    }
-
-    score
+    views.into_iter().max().unwrap_or_default()
 }
 
-pub struct Line(Vec<u8>);
+pub struct Forest {
+    rows: Vec<u8>,
+    cols: Vec<u8>,
+    stride: usize,
+}
 
-impl From<&str> for Line {
-    fn from(value: &str) -> Self {
-        Self(value.as_bytes().to_vec())
+impl PuzzleInput for Forest {
+    type Out = Self;
+
+    fn from_input(input: &str) -> Self::Out {
+        let mut lines = lines(input);
+        let first = lines.next().unwrap();
+        let stride = first.len();
+
+        let mut rows = vec![0_u8; stride * stride];
+        let mut cols = vec![0_u8; stride * stride];
+
+        rows[0..stride].copy_from_slice(first.as_bytes());
+        rows[stride..]
+            .chunks_mut(stride)
+            .zip(lines)
+            .for_each(|(row, line)| row.copy_from_slice(line.as_bytes()));
+
+        // transpose
+        rows.chunks(stride).enumerate().for_each(|(i, row)| {
+            row.iter()
+                .enumerate()
+                .for_each(|(j, e)| cols[j * stride + i] = *e);
+        });
+
+        Self { rows, cols, stride }
     }
 }
 
