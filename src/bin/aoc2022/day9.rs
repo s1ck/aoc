@@ -14,7 +14,7 @@ register!(
 );
 
 fn part1(commands: &[Input]) -> Output {
-    let mut visits = FxHashSet::<(i16, i16)>::default();
+    let mut visits = FxHashSet::<(i32, i32)>::default();
     let mut h = (0, 0);
     let mut t = (0, 0);
 
@@ -31,7 +31,7 @@ fn part1(commands: &[Input]) -> Output {
 }
 
 fn part2(commands: &[Input]) -> Output {
-    let mut visits = FxHashSet::<(i16, i16)>::default();
+    let mut visits = FxHashSet::<(i32, i32)>::default();
     let mut h = (0, 0);
     let mut t = [(0, 0); 9];
 
@@ -50,9 +50,9 @@ fn part2(commands: &[Input]) -> Output {
     visits.len()
 }
 
-fn next_t(h: (i16, i16), t: (i16, i16)) -> (i16, i16) {
-    let dx = i16::abs(h.0 - t.0);
-    let dy = i16::abs(h.1 - t.1);
+fn next_t(h: (i32, i32), t: (i32, i32)) -> (i32, i32) {
+    let dx = i32::abs(h.0 - t.0);
+    let dy = i32::abs(h.1 - t.1);
 
     if dx <= 1 && dy <= 1 {
         t
@@ -74,7 +74,7 @@ fn next_t(h: (i16, i16), t: (i16, i16)) -> (i16, i16) {
 
 #[derive(Debug)]
 pub struct Command {
-    step: (i16, i16),
+    step: (i32, i32),
     times: u8,
 }
 
