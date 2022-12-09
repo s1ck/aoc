@@ -14,23 +14,6 @@ register!(
 );
 
 fn part1(commands: &[Input]) -> Output {
-    fn next_t(h: (i16, i16), t: (i16, i16), step: (i16, i16)) -> (i16, i16) {
-        let dx = i16::abs(h.0 - t.0);
-        let dy = i16::abs(h.1 - t.1);
-
-        if dx <= 1 && dy <= 1 {
-            t
-        } else if dx == 2 && dy == 0 {
-            // left and right
-            (t.0 + step.0, t.1 + step.1)
-        } else if dx == 0 && dy == 2 {
-            // up and down
-            (t.0 + step.0, t.1 + step.1)
-        } else {
-            // diagonal, move to prev h position
-            (h.0 + step.0 * -1, h.1 + step.1 * -1)
-        }
-    }
     let mut visits = FxHashSet::<(i16, i16)>::default();
     let mut h = (0, 0);
     let mut t = (0, 0);
@@ -39,7 +22,7 @@ fn part1(commands: &[Input]) -> Output {
         let (dx, dy) = cmd.step;
         for _ in 0..cmd.times {
             h = (h.0 + dx, h.1 + dy);
-            t = next_t(h, t, cmd.step);
+            t = next_t(h, t);
             visits.insert(t);
         }
     }
@@ -47,8 +30,46 @@ fn part1(commands: &[Input]) -> Output {
     visits.len()
 }
 
-fn part2(items: &[Input]) -> Output {
-    0
+fn part2(commands: &[Input]) -> Output {
+    let mut visits = FxHashSet::<(i16, i16)>::default();
+    let mut h = (0, 0);
+    let mut t = [(0, 0); 9];
+
+    for cmd in commands {
+        let (dx, dy) = cmd.step;
+        for _ in 0..cmd.times {
+            h = (h.0 + dx, h.1 + dy);
+            t[0] = next_t(h, t[0]);
+            for i in 1..t.len() {
+                t[i] = next_t(t[i - 1], t[i]);
+            }
+            visits.insert(t[8]);
+        }
+    }
+
+    visits.len()
+}
+
+fn next_t(h: (i16, i16), t: (i16, i16)) -> (i16, i16) {
+    let dx = i16::abs(h.0 - t.0);
+    let dy = i16::abs(h.1 - t.1);
+
+    if dx <= 1 && dy <= 1 {
+        t
+    } else if dx == 2 && dy == 0 {
+        // left and right
+        let t_x = if t.0 < h.0 { t.0 + 1 } else { t.0 - 1 };
+        (t_x, t.1)
+    } else if dx == 0 && dy == 2 {
+        // up and down
+        let t_y = if t.1 < h.1 { t.1 + 1 } else { t.1 - 1 };
+        (t.0, t_y)
+    } else {
+        // diagonal, move to prev h position
+        let t_x = if t.0 < h.0 { t.0 + 1 } else { t.0 - 1 };
+        let t_y = if t.1 < h.1 { t.1 + 1 } else { t.1 - 1 };
+        (t_x, t_y)
+    }
 }
 
 #[derive(Debug)]
