@@ -40,25 +40,10 @@ fn solve<const N: usize>(commands: &[Input]) -> Output {
 }
 
 fn follow(h: (i32, i32), t: (i32, i32)) -> (i32, i32) {
-    let dx = i32::abs(h.0 - t.0);
-    let dy = i32::abs(h.1 - t.1);
-
-    if dx <= 1 && dy <= 1 {
-        t
-    } else if dx == 2 && dy == 0 {
-        // left and right
-        let t_x = if t.0 < h.0 { t.0 + 1 } else { t.0 - 1 };
-        (t_x, t.1)
-    } else if dx == 0 && dy == 2 {
-        // up and down
-        let t_y = if t.1 < h.1 { t.1 + 1 } else { t.1 - 1 };
-        (t.0, t_y)
-    } else {
-        // diagonal, move to prev h position
-        let t_x = if t.0 < h.0 { t.0 + 1 } else { t.0 - 1 };
-        let t_y = if t.1 < h.1 { t.1 + 1 } else { t.1 - 1 };
-        (t_x, t_y)
+    if h.0.abs_diff(t.0) <= 1 && h.1.abs_diff(t.1) <= 1 {
+        return t;
     }
+    (t.0 + (h.0 - t.0).signum(), t.1 + (h.1 - t.1).signum())
 }
 
 #[derive(Debug)]
