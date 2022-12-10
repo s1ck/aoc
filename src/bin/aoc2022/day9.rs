@@ -14,43 +14,32 @@ register!(
 );
 
 fn part1(commands: &[Input]) -> Output {
-    let mut visits = FxHashSet::<(i32, i32)>::default();
-    let mut h = (0, 0);
-    let mut t = (0, 0);
-
-    for cmd in commands {
-        let (dx, dy) = cmd.step;
-        for _ in 0..cmd.times {
-            h = (h.0 + dx, h.1 + dy);
-            t = next_t(h, t);
-            visits.insert(t);
-        }
-    }
-
-    visits.len()
+    solve::<2>(commands)
 }
 
 fn part2(commands: &[Input]) -> Output {
+    solve::<10>(commands)
+}
+
+fn solve<const N: usize>(commands: &[Input]) -> Output {
     let mut visits = FxHashSet::<(i32, i32)>::default();
-    let mut h = (0, 0);
-    let mut t = [(0, 0); 9];
+    let mut t = [(0, 0); N];
 
     for cmd in commands {
         let (dx, dy) = cmd.step;
         for _ in 0..cmd.times {
-            h = (h.0 + dx, h.1 + dy);
-            t[0] = next_t(h, t[0]);
-            for i in 1..t.len() {
-                t[i] = next_t(t[i - 1], t[i]);
+            t[0] = (t[0].0 + dx, t[0].1 + dy);
+            for i in 1..N {
+                t[i] = follow(t[i - 1], t[i]);
             }
-            visits.insert(t[8]);
+            visits.insert(t[N - 1]);
         }
     }
 
     visits.len()
 }
 
-fn next_t(h: (i32, i32), t: (i32, i32)) -> (i32, i32) {
+fn follow(h: (i32, i32), t: (i32, i32)) -> (i32, i32) {
     let dx = i32::abs(h.0 - t.0);
     let dy = i32::abs(h.1 - t.1);
 
@@ -124,7 +113,7 @@ mod tests {
     fn test() {
         let (res1, res2) = Solver::run_on_input();
         assert_eq!(res1, 5883);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 2367);
     }
 
     #[bench]
