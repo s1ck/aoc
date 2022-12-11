@@ -12,7 +12,7 @@ register!(
 );
 
 fn part1(monkeys: Vec<Input>) -> Output {
-    simulate::<20, _>(monkeys, |worry_level| worry_level / 3)
+    simulate::<20, _>(monkeys, |level| level / 3)
 }
 
 fn part2(monkeys: Vec<Input>) -> Output {
@@ -27,8 +27,8 @@ fn part2(monkeys: Vec<Input>) -> Output {
     // use the product of all divisors to keep the levels low:
     // A MOD C == 0 <=> (A % (C * D)) MOD C == 0 and
     // A MOD D == 0 <=> (A % (C * D)) MOD D == 0
-    let multiple = monkeys.iter().fold(1, |acc, m| acc * m.divisor);
-    simulate::<10_000, _>(monkeys, |worry_level| worry_level % multiple)
+    let multiple = monkeys.iter().map(|m| m.divisor).product::<Output>();
+    simulate::<10_000, _>(monkeys, |level| level % multiple)
 }
 
 fn simulate<const N: usize, F>(mut monkeys: Vec<Input>, f: F) -> usize
@@ -48,19 +48,21 @@ where
 {
     for i in 0..monkeys.len() {
         for j in 0..monkeys[i].items.len() {
-            let worry_level = &monkeys[i].items[j];
-            *(&mut monkeys[i].inspections) += 1;
-            let worry_level = match monkeys[i].operation {
-                Op::Square => worry_level * worry_level,
-                Op::Mul(n) => worry_level * n,
-                Op::Add(n) => worry_level + n,
+            let level = &monkeys[i].items[j];
+            let level = match monkeys[i].operation {
+                Op::Square => level * level,
+                Op::Mul(n) => level * n,
+                Op::Add(n) => level + n,
             };
-            let worry_level = f(worry_level);
-            if worry_level % monkeys[i].divisor == 0 {
-                monkeys[monkeys[i].targets.0].items.push(worry_level);
+
+            let level = f(level);
+
+            if level % monkeys[i].divisor == 0 {
+                monkeys[monkeys[i].targets.0].items.push(level);
             } else {
-                monkeys[monkeys[i].targets.1].items.push(worry_level);
+                monkeys[monkeys[i].targets.1].items.push(level);
             }
+            monkeys[i].inspections += 1;
         }
         monkeys[i].items.clear();
     }

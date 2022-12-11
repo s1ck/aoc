@@ -27,7 +27,7 @@ pub struct Node {
 
 impl Node {
     fn part1(&self) -> u32 {
-        let sub_sum = self.subs.iter().map(Node::part1).sum();
+        let sub_sum = self.subs.iter().map(Self::part1).sum();
         if self.size <= 100_000 {
             self.size + sub_sum
         } else {
@@ -80,7 +80,7 @@ impl PuzzleInput for Node {
                 }
             }
 
-            return Node { subs, size };
+            Node { subs, size }
         }
 
         read_dir(&mut lines(input).skip(1))
