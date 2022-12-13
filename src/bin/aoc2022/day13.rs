@@ -1,4 +1,9 @@
-use std::{cmp::Ordering, fmt::Debug, iter::Peekable, slice::Iter};
+use std::{
+    cmp::Ordering,
+    fmt::Debug,
+    iter::{self, Peekable},
+    slice::Iter,
+};
 
 use aoc::{lines, PuzzleInput};
 
@@ -28,36 +33,33 @@ fn part2(items: &[Input]) -> Output {
     let mut packets = Vec::with_capacity(items.len() * 2 + 2);
     items
         .iter()
-        .flat_map(|p| p.to_array())
+        .flat_map(|p| iter::once(&p.0).chain(iter::once(&p.1)))
         .enumerate()
         .collect_into(&mut packets);
 
-    let divider0 = packets.len();
-    let divider1 = packets.len() + 1;
-    packets.push((divider0, Node::Lst(vec![Node::Num(2)])));
-    packets.push((divider1, Node::Lst(vec![Node::Num(6)])));
+    let d0 = Node::Lst(vec![Node::Num(2)]);
+    let d1 = Node::Lst(vec![Node::Num(6)]);
+
+    packets.push((packets.len(), &d0));
+    packets.push((packets.len(), &d1));
     packets.sort_unstable_by(|(_, l), (_, r)| l.cmp(r));
-    let pos_divider0 = packets
+
+    let p0 = packets
         .iter()
-        .position(|(i, _)| *i == divider0)
+        .position(|(i, _)| *i == packets.len() - 1)
         .map(|p| p + 1)
         .unwrap();
 
-    let pos_divider1 = packets
+    let p1 = packets
         .iter()
-        .position(|(i, _)| *i == divider1)
+        .position(|(i, _)| *i == packets.len() - 2)
         .map(|p| p + 1)
         .unwrap();
 
-    pos_divider0 * pos_divider1
+    p0 * p1
 }
 
 pub struct Pair(Node, Node);
-impl Pair {
-    fn to_array(&self) -> [Node; 2] {
-        [self.0.clone(), self.1.clone()]
-    }
-}
 
 impl PuzzleInput for Pair {
     type Out = Self;
@@ -193,7 +195,7 @@ mod tests {
     fn test() {
         let (res1, res2) = Solver::run_on_input();
         assert_eq!(res1, 5825);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 24477);
     }
 
     #[bench]
