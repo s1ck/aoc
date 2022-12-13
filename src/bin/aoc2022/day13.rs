@@ -2,7 +2,7 @@ use std::{
     cmp::Ordering,
     fmt::Debug,
     iter::{self, Peekable},
-    slice::Iter,
+    slice::{self, Iter},
 };
 
 use aoc::{lines, PuzzleInput};
@@ -37,8 +37,8 @@ fn part2(items: &[Input]) -> Output {
         .enumerate()
         .collect_into(&mut packets);
 
-    let d0 = Node::Lst(vec![Node::Num(2)]);
-    let d1 = Node::Lst(vec![Node::Num(6)]);
+    let d0 = Node::Lst(&[Node::Num(2)]);
+    let d1 = Node::Lst(&[Node::Num(6)]);
 
     packets.push((packets.len(), &d0));
     packets.push((packets.len(), &d1));
@@ -70,35 +70,25 @@ impl PuzzleInput for Pair {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Node {
     Num(u8),
-    Lst(Vec<Node>),
+    Lst(&'static [Self]),
+}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl Ord for Node {
     fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
             (Self::Num(l), Self::Num(r)) => l.cmp(r),
-            (Self::Num(_), Self::Lst(_)) => self.to_list().cmp(other),
-            (Self::Lst(_), Self::Num(_)) => self.cmp(&other.to_list()),
-            (Self::Lst(l), Self::Lst(r)) => {
-                let len = usize::max(l.len(), r.len());
-
-                for i in 0..len {
-                    match (l.get(i), r.get(i)) {
-                        (None, None) => return Ordering::Equal,
-                        (None, Some(r)) => return Ordering::Less,
-                        (Some(_), None) => return Ordering::Greater,
-                        (Some(l), Some(r)) => match l.cmp(r) {
-                            Ordering::Less => return Ordering::Less,
-                            Ordering::Greater => return Ordering::Greater,
-                            Ordering::Equal => continue,
-                        },
-                    };
-                }
-                Ordering::Equal
-            }
+            (Self::Num(_), Self::Lst(r)) => slice::from_ref(self).cmp(r),
+            (Self::Lst(l), Self::Num(_)) => l.cmp(&slice::from_ref(other)),
+            (Self::Lst(l), Self::Lst(r)) => l.cmp(r),
         }
     }
 }
@@ -112,15 +102,6 @@ impl Debug for Node {
     }
 }
 
-impl Node {
-    fn to_list(&self) -> Self {
-        match self {
-            Self::Num(_) => Self::Lst(vec![self.clone()]),
-            Self::Lst(_) => self.clone(),
-        }
-    }
-}
-
 impl<'a> From<&'a str> for Node {
     fn from(value: &str) -> Self {
         fn parse(bytes: &mut Peekable<Iter<'_, u8>>) -> Node {
@@ -129,7 +110,7 @@ impl<'a> From<&'a str> for Node {
                 match bytes.next() {
                     Some(b'[') => entries.push(parse(bytes)),
                     Some(b']') | None => {
-                        return Node::Lst(entries);
+                        return Node::Lst(entries.leak());
                     }
                     Some(d) if d.is_ascii_digit() => {
                         // THE ACTUAL INPUT HAS NUMBERS FROM 0 to 10 INCLUSIVE
