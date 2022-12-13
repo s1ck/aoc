@@ -30,33 +30,27 @@ fn part1(items: &[Input]) -> Output {
 }
 
 fn part2(items: &[Input]) -> Output {
-    let mut packets = Vec::with_capacity(items.len() * 2 + 2);
-    items
-        .iter()
-        .flat_map(|p| iter::once(&p.0).chain(iter::once(&p.1)))
-        .enumerate()
-        .collect_into(&mut packets);
-
     let d0 = Node::Lst(&[Node::Num(2)]);
     let d1 = Node::Lst(&[Node::Num(6)]);
-
-    packets.push((packets.len(), &d0));
-    packets.push((packets.len(), &d1));
-    packets.sort_unstable_by(|(_, l), (_, r)| l.cmp(r));
-
-    let p0 = packets
+    let mut packets = items
         .iter()
-        .position(|(i, _)| *i == packets.len() - 1)
-        .map(|p| p + 1)
-        .unwrap();
+        .flat_map(|p| [&p.0, &p.1])
+        .chain(iter::once(&d0).chain(iter::once(&d1)))
+        .collect::<Vec<_>>();
 
-    let p1 = packets
+    packets.sort_unstable();
+
+    packets
         .iter()
-        .position(|(i, _)| *i == packets.len() - 2)
-        .map(|p| p + 1)
-        .unwrap();
-
-    p0 * p1
+        .enumerate()
+        .filter_map(|(i, n)| {
+            if **n == d0 || **n == d1 {
+                Some(i + 1)
+            } else {
+                None
+            }
+        })
+        .product()
 }
 
 pub struct Pair(Node, Node);
