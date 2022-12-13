@@ -25,10 +25,39 @@ fn part1(items: &[Input]) -> Output {
 }
 
 fn part2(items: &[Input]) -> Output {
-    0
+    let mut packets = Vec::with_capacity(items.len() * 2 + 2);
+    items
+        .iter()
+        .flat_map(|p| p.to_array())
+        .enumerate()
+        .collect_into(&mut packets);
+
+    let divider0 = packets.len();
+    let divider1 = packets.len() + 1;
+    packets.push((divider0, Node::Lst(vec![Node::Num(2)])));
+    packets.push((divider1, Node::Lst(vec![Node::Num(6)])));
+    packets.sort_unstable_by(|(_, l), (_, r)| l.cmp(r));
+    let pos_divider0 = packets
+        .iter()
+        .position(|(i, _)| *i == divider0)
+        .map(|p| p + 1)
+        .unwrap();
+
+    let pos_divider1 = packets
+        .iter()
+        .position(|(i, _)| *i == divider1)
+        .map(|p| p + 1)
+        .unwrap();
+
+    pos_divider0 * pos_divider1
 }
 
 pub struct Pair(Node, Node);
+impl Pair {
+    fn to_array(&self) -> [Node; 2] {
+        [self.0.clone(), self.1.clone()]
+    }
+}
 
 impl PuzzleInput for Pair {
     type Out = Self;
@@ -39,29 +68,13 @@ impl PuzzleInput for Pair {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, PartialOrd)]
 pub enum Node {
     Num(u8),
     Lst(Vec<Node>),
 }
 
-impl Debug for Node {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Num(n) => write!(f, "{n}"),
-            Self::Lst(l) => write!(f, "{l:?}"),
-        }
-    }
-}
-
-impl Node {
-    fn to_list(&self) -> Self {
-        match self {
-            Self::Num(_) => Self::Lst(vec![self.clone()]),
-            Self::Lst(_) => self.clone(),
-        }
-    }
-
+impl Ord for Node {
     fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
             (Self::Num(l), Self::Num(r)) => l.cmp(r),
@@ -88,6 +101,24 @@ impl Node {
     }
 }
 
+impl Debug for Node {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Num(n) => write!(f, "{n}"),
+            Self::Lst(l) => write!(f, "{l:?}"),
+        }
+    }
+}
+
+impl Node {
+    fn to_list(&self) -> Self {
+        match self {
+            Self::Num(_) => Self::Lst(vec![self.clone()]),
+            Self::Lst(_) => self.clone(),
+        }
+    }
+}
+
 impl<'a> From<&'a str> for Node {
     fn from(value: &str) -> Self {
         fn parse(bytes: &mut Peekable<Iter<'_, u8>>) -> Node {
@@ -100,10 +131,10 @@ impl<'a> From<&'a str> for Node {
                     }
                     Some(d) if d.is_ascii_digit() => {
                         // THE ACTUAL INPUT HAS NUMBERS FROM 0 to 10 INCLUSIVE
-                        // AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH
-                        let d = d - b'0' + 1;
+                        // AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARGH
+                        let d = d - b'0';
                         let n = match bytes.peek() {
-                            Some(n) if n.is_ascii_digit() => Some(10 * d + (**n - b'0' + 1)),
+                            Some(n) if n.is_ascii_digit() => Some(10 * d + (**n - b'0')),
                             _ => None,
                         };
                         let d = n.map_or(d, |n| {
@@ -155,7 +186,7 @@ mod tests {
         "#;
         let (res1, res2) = Solver::run_on(input);
         assert_eq!(res1, 13);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 140);
     }
 
     #[test]
