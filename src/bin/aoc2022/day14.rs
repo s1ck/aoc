@@ -1,6 +1,7 @@
 use std::{
     cell::RefCell,
     fmt::{Display, Write},
+    time::Duration,
 };
 
 use aoc::{lines, PuzzleInput};
@@ -30,7 +31,17 @@ fn part1(cave: &Input) -> Output {
 }
 
 fn part2(cave: &Input) -> Output {
-    0
+    let max_y = cave.bounding_box().1 .1 + 2;
+    let from = (0, max_y);
+    let to = (W - 1, max_y);
+    cave.fill(from, to, Cell::Rock);
+    let mut i = 0;
+    loop {
+        match cave.enter_more_sand_man(max_y) {
+            Some(sand) => i += sand,
+            None => break i,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -58,30 +69,59 @@ pub struct Cave {
 impl Cave {
     // Returns 'true' if the sand sticked, false otherwise
     fn enter_sand_man(&self) -> bool {
-        fn fall(map: &mut [[Cell; W]; H], from @ (x, y): (usize, usize)) -> (usize, usize) {
-            if y == H - 1 {
-                return from;
-            }
-            match map[y + 1][x] {
-                Cell::Air => fall(map, (x, y + 1)),
-                Cell::Rock | Cell::Sand => {
-                    return match (map[y + 1][x - 1], map[y + 1][x + 1]) {
-                        (Cell::Air, _) => fall(map, (x - 1, y + 1)),
-                        (_, Cell::Air) => fall(map, (x + 1, y + 1)),
-                        _ => {
-                            map[y][x] = Cell::Sand;
-                            (x, y)
-                        }
+        Self::add_sand(&mut self.map.borrow_mut(), (500, 0)).1 != H - 1
+    }
+
+    fn add_sand(map: &mut [[Cell; W]; H], from @ (x, y): (usize, usize)) -> (usize, usize) {
+        if y == H - 1 {
+            return from;
+        }
+        match map[y + 1][x] {
+            Cell::Air => Self::add_sand(map, (x, y + 1)),
+            Cell::Rock | Cell::Sand => {
+                return match (map[y + 1][x - 1], map[y + 1][x + 1]) {
+                    (Cell::Air, _) => Self::add_sand(map, (x - 1, y + 1)),
+                    (_, Cell::Air) => Self::add_sand(map, (x + 1, y + 1)),
+                    _ => {
+                        map[y][x] = Cell::Sand;
+                        (x, y)
                     }
                 }
             }
         }
+    }
 
-        // sand enters at 500,0
-        // falls down untit it hits rock
-        // if bottom left is free, fall there
-        // else if bottom right is free, fall there
-        fall(&mut self.map.borrow_mut(), (500, 0)).1 != H - 1
+    fn enter_more_sand_man(&self, max_y: usize) -> Option<usize> {
+        if self.map.borrow()[0][500] != Cell::Air {
+            None
+        } else {
+            Self::add_sand_2(&mut self.map.borrow_mut(), (500, 0), max_y)
+        }
+    }
+
+    fn add_sand_2(
+        map: &mut [[Cell; W]; H],
+        from @ (x, y): (usize, usize),
+        max_y: usize,
+    ) -> Option<usize> {
+        if x == 0 || x == W - 1 {
+            let diff_y = max_y - y;
+            map[y][x] = Cell::Sand;
+            return Some(diff_y);
+        }
+        match map[y + 1][x] {
+            Cell::Air => Self::add_sand_2(map, (x, y + 1), max_y),
+            Cell::Rock | Cell::Sand => {
+                return match (map[y + 1][x - 1], map[y + 1][x + 1]) {
+                    (Cell::Air, _) => Self::add_sand_2(map, (x - 1, y + 1), max_y),
+                    (_, Cell::Air) => Self::add_sand_2(map, (x + 1, y + 1), max_y),
+                    _ => {
+                        map[y][x] = Cell::Sand;
+                        Some(1)
+                    }
+                }
+            }
+        }
     }
 
     fn fill(&self, mut from: (usize, usize), mut to: (usize, usize), cell: Cell) {
@@ -99,16 +139,6 @@ impl Cave {
         }
     }
 
-    fn dedust(&self) {
-        for mut row in *self.map.borrow_mut() {
-            row.iter_mut().for_each(|c| {
-                if *c == Cell::Sand {
-                    *c = Cell::Air;
-                }
-            });
-        }
-    }
-
     // For visual debugging
     fn bounding_box(&self) -> ((usize, usize), (usize, usize)) {
         let min_y = self
@@ -118,13 +148,15 @@ impl Cave {
             .position(|row| row.iter().any(|c| *c == Cell::Rock || *c == Cell::Sand))
             .unwrap_or(0);
 
-        let max_y = H - self
-            .map
-            .borrow()
-            .iter()
-            .rev()
-            .position(|row| row.iter().any(|c| *c == Cell::Rock || *c == Cell::Sand))
-            .unwrap_or(0);
+        let max_y = H
+            - 1
+            - self
+                .map
+                .borrow()
+                .iter()
+                .rev()
+                .position(|row| row.iter().any(|c| *c == Cell::Rock || *c == Cell::Sand))
+                .unwrap_or(0);
 
         let min_x = self
             .map
@@ -137,17 +169,19 @@ impl Cave {
             .min()
             .unwrap_or(0);
 
-        let max_x = W - self
-            .map
-            .borrow()
-            .iter()
-            .filter_map(|row| {
-                row.iter()
-                    .rev()
-                    .position(|c| *c == Cell::Rock || *c == Cell::Sand)
-            })
-            .min()
-            .unwrap_or(0);
+        let max_x = W
+            - 1
+            - self
+                .map
+                .borrow()
+                .iter()
+                .filter_map(|row| {
+                    row.iter()
+                        .rev()
+                        .position(|c| *c == Cell::Rock || *c == Cell::Sand)
+                })
+                .min()
+                .unwrap_or(0);
 
         ((min_x, min_y), (max_x, max_y))
     }
@@ -213,7 +247,7 @@ mod tests {
     fn test() {
         let (res1, res2) = Solver::run_on_input();
         assert_eq!(res1, 1003);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 25771);
     }
 
     #[bench]
