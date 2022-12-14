@@ -11,8 +11,8 @@ register!(
     }
 );
 
-pub const W: usize = 600;
-pub const H: usize = 200;
+pub const W: usize = 531;
+pub const H: usize = 169;
 
 fn part1(mut cave: Input) -> Output {
     let mut i = 0;
@@ -26,7 +26,7 @@ fn part1(mut cave: Input) -> Output {
 
 fn part2(mut cave: Input) -> Output {
     let max_y = cave.max_y() + 2;
-    cave.fill((0, max_y), (W - 1, max_y), Cell::Rock);
+    cave.fill((0, max_y), (W - 1, max_y));
 
     let mut i = 0;
     loop {
@@ -109,7 +109,7 @@ impl Cave {
         }
     }
 
-    fn fill(&mut self, mut from: (usize, usize), mut to: (usize, usize), cell: Cell) {
+    fn fill(&mut self, mut from: (usize, usize), mut to: (usize, usize)) {
         if from > to {
             std::mem::swap(&mut from, &mut to);
         }
@@ -117,10 +117,10 @@ impl Cave {
         let (x1, y1) = to;
 
         for x in x0..=x1 {
-            self.map[y0][x] = cell;
+            self.map[y0][x] = Cell::Rock;
         }
         for y in y0..=y1 {
-            self.map[y][x0] = cell;
+            self.map[y][x0] = Cell::Rock;
         }
     }
 
@@ -148,7 +148,7 @@ impl PuzzleInput for Cave {
                 .map(|pair| pair.split_once(',').unwrap())
                 .map(|(l, r)| (l.parse::<usize>().unwrap(), r.parse::<usize>().unwrap()))
                 .reduce(|prev, next| {
-                    cave.fill(prev, next, Cell::Rock);
+                    cave.fill(prev, next);
                     next
                 });
         });
