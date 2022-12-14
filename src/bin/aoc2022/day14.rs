@@ -63,36 +63,49 @@ impl Cave {
     }
 
     // Returns how many sand particles have been added (if any)
-    fn drop_sand(map: &mut [[Cell; W]; H], (x, y): (usize, usize), max_y: usize) -> Option<usize> {
-        // Part 1
-        if y == H - 1 {
-            return None;
-        }
-        // Part 2
-        // If we hit the horizontal boundaries, we know that the particles
-        // will just fall down to the side without any rocks in their way.
-        // This means, that we will add as many sand particles as we have
-        // distance to the floor (max_y). We have to add one sand particle
-        // to bubble this up eventually.
-        //
-        // I think the flaw here is that it won't work if we have rocks
-        // placed at the x boundaries.
-        if x == 0 || x == W - 1 {
-            let diff_y = max_y - y;
-            map[y][x] = Cell::Sand;
-            return Some(diff_y);
-        }
-        // add sand
-        match map[y + 1][x] {
-            Cell::Air => Self::drop_sand(map, (x, y + 1), max_y),
-            Cell::Rock | Cell::Sand => match (map[y + 1][x - 1], map[y + 1][x + 1]) {
-                (Cell::Air, _) => Self::drop_sand(map, (x - 1, y + 1), max_y),
-                (_, Cell::Air) => Self::drop_sand(map, (x + 1, y + 1), max_y),
-                _ => {
-                    map[y][x] = Cell::Sand;
-                    Some(1)
-                }
-            },
+    fn drop_sand(
+        map: &mut [[Cell; W]; H],
+        (mut x, mut y): (usize, usize),
+        max_y: usize,
+    ) -> Option<usize> {
+        loop {
+            // Part 1
+            if y == H - 1 {
+                return None;
+            }
+
+            // Part 2
+            // If we hit the horizontal boundaries, we know that the particles
+            // will just fall down to the side without any rocks in their way.
+            // This means, that we will add as many sand particles as we have
+            // distance to the floor (max_y). We have to add one sand particle
+            // to bubble this up eventually.
+            //
+            // I think the flaw here is that it won't work if we have rocks
+            // placed at the x boundaries.
+            if x == 0 || x == W - 1 {
+                let diff_y = max_y - y;
+                map[y][x] = Cell::Sand;
+                return Some(diff_y);
+            }
+
+            match map[y + 1][x] {
+                Cell::Air => y += 1,
+                Cell::Rock | Cell::Sand => match (map[y + 1][x - 1], map[y + 1][x + 1]) {
+                    (Cell::Air, _) => {
+                        x -= 1;
+                        y += 1;
+                    }
+                    (_, Cell::Air) => {
+                        x += 1;
+                        y += 1;
+                    }
+                    _ => {
+                        map[y][x] = Cell::Sand;
+                        return Some(1);
+                    }
+                },
+            }
         }
     }
 
