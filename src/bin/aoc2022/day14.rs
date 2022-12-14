@@ -1,9 +1,3 @@
-use std::{
-    cell::RefCell,
-    fmt::{Display, Write},
-    time::Duration,
-};
-
 use aoc::{lines, PuzzleInput};
 
 type Input = Cave;
@@ -12,29 +6,28 @@ type Output = usize;
 register!(
     "input/day14.txt";
     (input: input!(verbatim Input)) -> Output {
-        part1(&input.clone());
-        part2(&input);
+        part1(input.clone());
+        part2(input);
     }
 );
 
 pub const W: usize = 600;
 pub const H: usize = 200;
 
-fn part1(cave: &Input) -> Output {
+fn part1(mut cave: Input) -> Output {
     let mut i = 0;
     loop {
-        if !cave.enter_sand_man() {
-            break i;
+        match cave.enter_sand_man() {
+            Some(sand) => i += sand,
+            None => break i,
         }
-        i += 1;
     }
 }
 
-fn part2(cave: &Input) -> Output {
-    let max_y = cave.bounding_box().1 .1 + 2;
-    let from = (0, max_y);
-    let to = (W - 1, max_y);
-    cave.fill(from, to, Cell::Rock);
+fn part2(mut cave: Input) -> Output {
+    let max_y = cave.max_y() + 2;
+    cave.fill((0, max_y), (W - 1, max_y), Cell::Rock);
+
     let mut i = 0;
     loop {
         match cave.enter_more_sand_man(max_y) {
@@ -44,87 +37,66 @@ fn part2(cave: &Input) -> Output {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd)]
 pub enum Cell {
     Rock,
     Sand,
     Air,
 }
 
-impl Display for Cell {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            Cell::Rock => "#",
-            Cell::Sand => "o",
-            Cell::Air => ".",
-        })
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Cave {
-    map: RefCell<[[Cell; W]; H]>,
+    map: [[Cell; W]; H],
 }
 
 impl Cave {
-    // Returns 'true' if the sand sticked, false otherwise
-    fn enter_sand_man(&self) -> bool {
-        Self::add_sand(&mut self.map.borrow_mut(), (500, 0)).1 != H - 1
+    fn enter_sand_man(&mut self) -> Option<usize> {
+        Self::drop_sand(&mut self.map, (500, 0), H)
     }
 
-    fn add_sand(map: &mut [[Cell; W]; H], from @ (x, y): (usize, usize)) -> (usize, usize) {
-        if y == H - 1 {
-            return from;
-        }
-        match map[y + 1][x] {
-            Cell::Air => Self::add_sand(map, (x, y + 1)),
-            Cell::Rock | Cell::Sand => {
-                return match (map[y + 1][x - 1], map[y + 1][x + 1]) {
-                    (Cell::Air, _) => Self::add_sand(map, (x - 1, y + 1)),
-                    (_, Cell::Air) => Self::add_sand(map, (x + 1, y + 1)),
-                    _ => {
-                        map[y][x] = Cell::Sand;
-                        (x, y)
-                    }
-                }
-            }
-        }
-    }
-
-    fn enter_more_sand_man(&self, max_y: usize) -> Option<usize> {
-        if self.map.borrow()[0][500] != Cell::Air {
-            None
+    fn enter_more_sand_man(&mut self, max_y: usize) -> Option<usize> {
+        if self.map[0][500] == Cell::Air {
+            Self::drop_sand(&mut self.map, (500, 0), max_y)
         } else {
-            Self::add_sand_2(&mut self.map.borrow_mut(), (500, 0), max_y)
+            None
         }
     }
 
-    fn add_sand_2(
-        map: &mut [[Cell; W]; H],
-        from @ (x, y): (usize, usize),
-        max_y: usize,
-    ) -> Option<usize> {
+    // Returns how many sand particles have been added (if any)
+    fn drop_sand(map: &mut [[Cell; W]; H], (x, y): (usize, usize), max_y: usize) -> Option<usize> {
+        // Part 1
+        if y == H - 1 {
+            return None;
+        }
+        // Part 2
+        // If we hit the horizontal boundaries, we know that the particles
+        // will just fall down to the side without any rocks in their way.
+        // This means, that we will add as many sand particles as we have
+        // distance to the floor (max_y). We have to add one sand particle
+        // to bubble this up eventually.
+        //
+        // I think the flaw here is that it won't work if we have rocks
+        // placed at the x boundaries.
         if x == 0 || x == W - 1 {
             let diff_y = max_y - y;
             map[y][x] = Cell::Sand;
             return Some(diff_y);
         }
+        // add sand
         match map[y + 1][x] {
-            Cell::Air => Self::add_sand_2(map, (x, y + 1), max_y),
-            Cell::Rock | Cell::Sand => {
-                return match (map[y + 1][x - 1], map[y + 1][x + 1]) {
-                    (Cell::Air, _) => Self::add_sand_2(map, (x - 1, y + 1), max_y),
-                    (_, Cell::Air) => Self::add_sand_2(map, (x + 1, y + 1), max_y),
-                    _ => {
-                        map[y][x] = Cell::Sand;
-                        Some(1)
-                    }
+            Cell::Air => Self::drop_sand(map, (x, y + 1), max_y),
+            Cell::Rock | Cell::Sand => match (map[y + 1][x - 1], map[y + 1][x + 1]) {
+                (Cell::Air, _) => Self::drop_sand(map, (x - 1, y + 1), max_y),
+                (_, Cell::Air) => Self::drop_sand(map, (x + 1, y + 1), max_y),
+                _ => {
+                    map[y][x] = Cell::Sand;
+                    Some(1)
                 }
-            }
+            },
         }
     }
 
-    fn fill(&self, mut from: (usize, usize), mut to: (usize, usize), cell: Cell) {
+    fn fill(&mut self, mut from: (usize, usize), mut to: (usize, usize), cell: Cell) {
         if from > to {
             std::mem::swap(&mut from, &mut to);
         }
@@ -132,75 +104,21 @@ impl Cave {
         let (x1, y1) = to;
 
         for x in x0..=x1 {
-            self.map.borrow_mut()[y0][x] = cell;
+            self.map[y0][x] = cell;
         }
         for y in y0..=y1 {
-            self.map.borrow_mut()[y][x0] = cell;
+            self.map[y][x0] = cell;
         }
     }
 
-    // For visual debugging
-    fn bounding_box(&self) -> ((usize, usize), (usize, usize)) {
-        let min_y = self
-            .map
-            .borrow()
-            .iter()
-            .position(|row| row.iter().any(|c| *c == Cell::Rock || *c == Cell::Sand))
-            .unwrap_or(0);
-
-        let max_y = H
-            - 1
+    fn max_y(&self) -> usize {
+        H - 1
             - self
                 .map
-                .borrow()
                 .iter()
                 .rev()
                 .position(|row| row.iter().any(|c| *c == Cell::Rock || *c == Cell::Sand))
-                .unwrap_or(0);
-
-        let min_x = self
-            .map
-            .borrow()
-            .iter()
-            .filter_map(|row| {
-                row.iter()
-                    .position(|c| *c == Cell::Rock || *c == Cell::Sand)
-            })
-            .min()
-            .unwrap_or(0);
-
-        let max_x = W
-            - 1
-            - self
-                .map
-                .borrow()
-                .iter()
-                .filter_map(|row| {
-                    row.iter()
-                        .rev()
-                        .position(|c| *c == Cell::Rock || *c == Cell::Sand)
-                })
-                .min()
-                .unwrap_or(0);
-
-        ((min_x, min_y), (max_x, max_y))
-    }
-}
-
-impl Display for Cave {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let ((min_x, min_y), (max_x, max_y)) = self.bounding_box();
-
-        for y in min_y..=max_y {
-            f.write_str(
-                &self.map.borrow()[y][min_x..=max_x]
-                    .iter()
-                    .map(|c| format!("{c}"))
-                    .collect::<String>(),
-            )?;
-            f.write_char('\n')?;
-        }
-        Ok(())
+                .unwrap_or(0)
     }
 }
 
@@ -208,8 +126,8 @@ impl PuzzleInput for Cave {
     type Out = Self;
 
     fn from_input(input: &str) -> Self::Out {
-        let cave = Cave {
-            map: RefCell::new([[Cell::Air; W]; H]),
+        let mut cave = Self {
+            map: [[Cell::Air; W]; H],
         };
 
         lines(input).for_each(|line| {
@@ -260,12 +178,12 @@ mod tests {
     #[bench]
     fn bench_pt1(b: &mut Bencher) {
         let input = Solver::parse_input(Solver::puzzle_input());
-        b.iter(|| part1(&input));
+        b.iter(|| part1(input.clone()));
     }
 
     #[bench]
     fn bench_pt2(b: &mut Bencher) {
         let input = Solver::parse_input(Solver::puzzle_input());
-        b.iter(|| part2(&input));
+        b.iter(|| part2(input.clone()));
     }
 }
