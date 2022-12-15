@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, ops::RangeInclusive};
 
 use aoc::{lines, PuzzleInput};
 use atoi::FromRadix10Signed;
@@ -42,35 +42,56 @@ impl Sensor {
     fn covers(&self, x: i32, y: i32) -> bool {
         manhattan((self.x, self.y), (x, y)) <= self.range
     }
+
+    fn coverage_at_row(&self, y: i32) -> Option<RangeInclusive<i32>> {
+        let dy = self.y.abs_diff(y) as i32;
+        if dy > self.range {
+            None
+        } else {
+            let dx = self.range.abs_diff(dy) as i32;
+            Some(self.x - dx..=self.x + dx)
+        }
+    }
 }
 
 pub struct Map {
     sensors: Vec<Sensor>,
     beacons: FxHashSet<(i32, i32)>,
-    x_min: i32,
-    x_max: i32,
 }
 
 impl Map {
     fn coverage(&self, y: i32) -> usize {
-        let mut coverage = 0;
-        for x in self.x_min..=self.x_max {
-            if self.beacons.contains(&(x, y)) {
-                continue;
-            }
-            if self.sensors.iter().any(|s| s.covers(x, y)) {
-                coverage += 1;
-            }
+        // Get the covered range for each sensor at row y.
+        let mut ranges = self
+            .sensors
+            .iter()
+            .filter_map(|s| s.coverage_at_row(y))
+            .collect::<Vec<_>>();
+
+        if ranges.is_empty() {
+            return 0;
         }
-        coverage
+
+        // Order ranges by (start, end).
+        ranges.sort_unstable_by_key(|r| (*r.start(), *r.end()));
+        // The ranges are overlapping.
+        let range = ranges[0].start()..=ranges[ranges.len() - 1].end();
+
+        let beacons = self
+            .beacons
+            .iter()
+            .filter(|(b_x, b_y)| *b_y == y && range.contains(&b_x))
+            .count();
+
+        (*range.end() - *range.start()) as usize + 1 - beacons
     }
 
     fn tuning_frequency(&self, x_y_max: i32) -> usize {
-        let map_range = 0..=x_y_max;
         // An undiscovered beacon must exist outside of the coverage
         // of each sensor. We need to check the points that are range + 1
         // away from each sensor. If the missing beacon is nearby,
         // it must be at one of those range + 1 positions.
+        let map_range = 0..=x_y_max;
         for Sensor { x, y, range } in &self.sensors {
             for dx in 0..range + 2 {
                 let dy = range + 1 - dx;
@@ -101,8 +122,6 @@ impl PuzzleInput for Map {
     type Out = Self;
 
     fn from_input(input: &str) -> Self::Out {
-        let mut x_min = i32::MAX;
-        let mut x_max = i32::MIN;
         let mut beacons = FxHashSet::default();
 
         let sensors = lines(input)
@@ -118,8 +137,6 @@ impl PuzzleInput for Map {
                 let (b_y, _) = i32::from_radix_10_signed(&line[offset..]);
 
                 let range = manhattan((s_x, s_y), (b_x, b_y));
-                x_min = i32::min(x_min, s_x - range);
-                x_max = i32::max(x_max, s_x + range);
 
                 beacons.insert((b_x, b_y));
                 Sensor {
@@ -130,12 +147,7 @@ impl PuzzleInput for Map {
             })
             .collect::<Vec<_>>();
 
-        Self {
-            sensors,
-            beacons,
-            x_min,
-            x_max,
-        }
+        Self { sensors, beacons }
     }
 }
 
