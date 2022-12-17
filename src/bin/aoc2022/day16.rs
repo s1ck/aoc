@@ -38,8 +38,31 @@ fn part2(pipes: &Input) -> Output {
     )
 }
 
+#[derive(PartialEq, Eq, Hash)]
+pub struct Args {
+    curr: usize,
+    flows: Vec<u32>,
+    time_left: u32,
+    use_elephant: bool,
+}
+
+impl Args {
+    fn new(curr: usize, flows: &FxHashMap<usize, u32>, time_left: u32, use_elephant: bool) -> Self {
+        Self {
+            curr,
+            flows: flows
+                .values()
+                .cloned()
+                .collect::<Vec<_>>()
+                .tap_mut(|f| f.sort_unstable()),
+            time_left,
+            use_elephant,
+        }
+    }
+}
+
 std::thread_local! {
-    pub static MEMOIZED_MAX_PRESSURE: RefCell<FxHashMap<(usize, Vec<u32>, u32, bool), Output>> = RefCell::new(FxHashMap::default());
+    pub static MEMOIZED_MAX_PRESSURE: RefCell<FxHashMap<Args, Output>> = RefCell::new(FxHashMap::default());
 }
 
 fn max_pressure(
@@ -50,20 +73,9 @@ fn max_pressure(
     use_elephant: bool,
     aa_node_id: usize,
 ) -> Output {
-    if let Some(max) = MEMOIZED_MAX_PRESSURE.with(|m| {
-        m.borrow()
-            .get(&(
-                curr,
-                flows
-                    .values()
-                    .cloned()
-                    .collect::<Vec<u32>>()
-                    .tap_mut(|f| f.sort_unstable()),
-                time_left,
-                use_elephant,
-            ))
-            .cloned()
-    }) {
+    let args = Args::new(curr, &flows, time_left, use_elephant);
+
+    if let Some(max) = MEMOIZED_MAX_PRESSURE.with(|m| m.borrow().get(&args).cloned()) {
         return max;
     }
 
@@ -91,23 +103,9 @@ fn max_pressure(
         .max()
         .unwrap_or_default();
 
-    MEMOIZED_MAX_PRESSURE.with(|m| {
-        m.borrow_mut().insert(
-            (
-                curr,
-                flows
-                    .values()
-                    .cloned()
-                    .collect::<Vec<u32>>()
-                    .tap_mut(|f| f.sort_unstable()),
-                time_left,
-                use_elephant,
-            ),
-            max,
-        )
-    });
-
-    max
+    MEMOIZED_MAX_PRESSURE
+        .with(|m| m.borrow_mut().insert(args, max))
+        .unwrap_or(max)
 }
 
 #[derive(Debug)]
