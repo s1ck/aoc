@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use tap::prelude::*;
+
 use aoc::{lines, PuzzleInput};
 use atoi::FromRadix10;
 use fxhash::FxHashMap;
@@ -35,6 +38,10 @@ fn part2(pipes: &Input) -> Output {
     )
 }
 
+std::thread_local! {
+    pub static MEMOIZED_MAX_PRESSURE: RefCell<FxHashMap<(usize, Vec<u32>, u32, bool), Output>> = RefCell::new(FxHashMap::default());
+}
+
 fn max_pressure(
     curr: usize,
     flows: FxHashMap<usize, u32>,
@@ -43,7 +50,24 @@ fn max_pressure(
     use_elephant: bool,
     aa_node_id: usize,
 ) -> Output {
-    flows
+    if let Some(max) = MEMOIZED_MAX_PRESSURE.with(|m| {
+        m.borrow()
+            .get(&(
+                curr,
+                flows
+                    .values()
+                    .cloned()
+                    .collect::<Vec<u32>>()
+                    .tap_mut(|f| f.sort_unstable()),
+                time_left,
+                use_elephant,
+            ))
+            .cloned()
+    }) {
+        return max;
+    }
+
+    let max = flows
         .iter()
         // Only visit the node if there is enough time to get there and open the valve.
         // We need 1 minute * distance to get to `next` plus 1 minute to open the valve.
@@ -65,7 +89,25 @@ fn max_pressure(
                 .then(|| max_pressure(aa_node_id, flows.clone(), distances, 26, false, aa_node_id)),
         )
         .max()
-        .unwrap_or_default()
+        .unwrap_or_default();
+
+    MEMOIZED_MAX_PRESSURE.with(|m| {
+        m.borrow_mut().insert(
+            (
+                curr,
+                flows
+                    .values()
+                    .cloned()
+                    .collect::<Vec<u32>>()
+                    .tap_mut(|f| f.sort_unstable()),
+                time_left,
+                use_elephant,
+            ),
+            max,
+        )
+    });
+
+    max
 }
 
 #[derive(Debug)]

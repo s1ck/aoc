@@ -19,6 +19,7 @@ humantime = "2.1.0"
 indexmap = "1.9.2"
 num_enum = "0.5.7"
 owo-colors = { version = "3.5.0", features = ["supports-colors"] }
+tap = "1"
 
 [[bin]]
 name = "aoc2021"
