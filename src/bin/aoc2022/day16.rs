@@ -19,7 +19,7 @@ register!(
 fn part1(pipes: &Input) -> Output {
     max_pressure(
         pipes.nodes["AA"],
-        pipes.flows.clone(),
+        &pipes.flows,
         &pipes.distances(),
         30,
         false,
@@ -30,7 +30,7 @@ fn part1(pipes: &Input) -> Output {
 fn part2(pipes: &Input) -> Output {
     max_pressure(
         pipes.nodes["AA"],
-        pipes.flows.clone(),
+        &pipes.flows,
         &pipes.distances(),
         26,
         true,
@@ -52,7 +52,7 @@ impl Args {
             curr,
             flows: flows
                 .values()
-                .cloned()
+                .copied()
                 .collect::<Vec<_>>()
                 .tap_mut(|f| f.sort_unstable()),
             time_left,
@@ -67,15 +67,15 @@ std::thread_local! {
 
 fn max_pressure(
     curr: usize,
-    flows: FxHashMap<usize, u32>,
+    flows: &FxHashMap<usize, u32>,
     distances: &[Vec<u32>],
     time_left: u32,
     use_elephant: bool,
     aa_node_id: usize,
 ) -> Output {
-    let args = Args::new(curr, &flows, time_left, use_elephant);
+    let args = Args::new(curr, flows, time_left, use_elephant);
 
-    if let Some(max) = MEMOIZED_MAX_PRESSURE.with(|m| m.borrow().get(&args).cloned()) {
+    if let Some(max) = MEMOIZED_MAX_PRESSURE.with(|m| m.borrow().get(&args).copied()) {
         return max;
     }
 
@@ -93,12 +93,18 @@ fn max_pressure(
             // Therefore, the valve will be open for `time_left` minutes.
             let cost = time_left * flow;
             // Find the maximum pressure for the remaning flows.
-            cost + max_pressure(*next, flows, distances, time_left, use_elephant, aa_node_id)
+            cost + max_pressure(
+                *next,
+                &flows,
+                distances,
+                time_left,
+                use_elephant,
+                aa_node_id,
+            )
         })
         .chain(
             // Figure out, if its better to let the elephant process the remanings flows.
-            use_elephant
-                .then(|| max_pressure(aa_node_id, flows.clone(), distances, 26, false, aa_node_id)),
+            use_elephant.then(|| max_pressure(aa_node_id, flows, distances, 26, false, aa_node_id)),
         )
         .max()
         .unwrap_or_default();
@@ -170,7 +176,7 @@ impl PuzzleInput for Pipes {
         lines(input).for_each(|line| {
             let line = line.as_bytes();
             let label = std::str::from_utf8(&line[6..8]).unwrap().to_string();
-            let id = nodes.entry(label).or_insert_with(&mut next_id).clone();
+            let id = *nodes.entry(label).or_insert_with(&mut next_id);
             let (flow, used) = u32::from_radix_10(&line[23..]);
             if flow > 0 {
                 flows.insert(id, flow);
@@ -182,12 +188,7 @@ impl PuzzleInput for Pipes {
                 .unwrap()
                 .1
                 .split(", ")
-                .map(|id| {
-                    nodes
-                        .entry(id.to_string())
-                        .or_insert_with(&mut next_id)
-                        .clone()
-                })
+                .map(|id| *nodes.entry(id.to_string()).or_insert_with(&mut next_id))
                 .collect::<Vec<_>>();
 
             edges.insert(id, targets);
