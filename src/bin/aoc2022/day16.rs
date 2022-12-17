@@ -19,6 +19,19 @@ fn part1(pipes: &Input) -> Output {
         pipes.flows.clone(),
         &pipes.distances(),
         30,
+        false,
+        pipes.nodes["AA"],
+    )
+}
+
+fn part2(pipes: &Input) -> Output {
+    max_pressure(
+        pipes.nodes["AA"],
+        pipes.flows.clone(),
+        &pipes.distances(),
+        26,
+        true,
+        pipes.nodes["AA"],
     )
 }
 
@@ -27,6 +40,8 @@ fn max_pressure(
     flows: FxHashMap<usize, u32>,
     distances: &[Vec<u32>],
     time_left: u32,
+    use_elephant: bool,
+    aa_node_id: usize,
 ) -> Output {
     flows
         .iter()
@@ -42,53 +57,15 @@ fn max_pressure(
             // Therefore, the valve will be open for `time_left` minutes.
             let cost = time_left * flow;
             // Find the maximum pressure for the remaning flows.
-            cost + max_pressure(*next, flows, distances, time_left)
+            cost + max_pressure(*next, flows, distances, time_left, use_elephant, aa_node_id)
         })
+        .chain(
+            // Figure out, if its better to let the elephant process the remanings flows.
+            use_elephant
+                .then(|| max_pressure(aa_node_id, flows.clone(), distances, 26, false, aa_node_id)),
+        )
         .max()
         .unwrap_or_default()
-}
-
-fn max_joint_pressure(
-    curr: usize,
-    flows: FxHashMap<usize, u32>,
-    distances: &[Vec<u32>],
-    time_left: u32,
-    start_node: usize,
-) -> Output {
-    flows
-        .iter()
-        // Only visit the node if there is enough time to get there and open the valve.
-        // We need 1 minute * distance to get to `next` plus 1 minute to open the valve.
-        .filter(|(next, _)| distances[curr][**next] + 1 < time_left)
-        .map(|(next, flow)| {
-            // Only look at the remaining possible flows.
-            let mut remaining = flows.clone();
-            remaining.remove(next);
-            // It takes us `distance` minutes to get to n and 1 minute to open the valve.
-            let time_left = time_left - distances[curr][*next] - 1;
-            // Therefore, the valve will be open for `time_left` minutes.
-            let cost = time_left * flow;
-            // Find the maximum pressure for the remaning flows.
-            cost + max_joint_pressure(*next, remaining, distances, time_left, start_node)
-        })
-        .chain(std::iter::once(max_pressure(
-            start_node,
-            flows.clone(),
-            distances,
-            26,
-        )))
-        .max()
-        .unwrap_or_default()
-}
-
-fn part2(pipes: &Input) -> Output {
-    max_joint_pressure(
-        pipes.nodes["AA"],
-        pipes.flows.clone(),
-        &pipes.distances(),
-        26,
-        pipes.nodes["AA"],
-    )
 }
 
 #[derive(Debug)]
@@ -213,7 +190,7 @@ mod tests {
     fn test() {
         let (res1, res2) = Solver::run_on_input();
         assert_eq!(res1, 1775);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 2351);
     }
 
     #[bench]
