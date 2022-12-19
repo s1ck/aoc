@@ -89,13 +89,12 @@ impl From<usize> for RockType {
     }
 }
 
-pub struct Rock {
-    points: FxHashSet<(usize, usize)>,
+pub struct Rock<'a> {
+    points: &'a mut FxHashSet<(usize, usize)>,
 }
 
-impl Rock {
-    pub fn new(rock_type: RockType, y: usize) -> Self {
-        let mut points = FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
+impl<'a> Rock<'a> {
+    pub fn new(rock_type: RockType, points: &'a mut FxHashSet<(usize, usize)>, y: usize) -> Self {
         match rock_type {
             RockType::HLine => {
                 points.insert((2, y));
@@ -201,6 +200,7 @@ impl Rock {
 pub struct Chamber {
     rocks: FxHashSet<(usize, usize)>,
     buffer: Vec<(usize, usize)>,
+    rock: FxHashSet<(usize, usize)>,
     top: usize,
 }
 
@@ -213,12 +213,13 @@ impl Chamber {
         Self {
             rocks,
             buffer: Vec::with_capacity(5),
+            rock: FxHashSet::with_capacity_and_hasher(5, FxBuildHasher::default()),
             top: 0,
         }
     }
 
     pub fn add_rock(&mut self, rock_type: RockType, moves: &[Move], mut mov: usize) -> usize {
-        let mut rock = Rock::new(rock_type, self.top + 4);
+        let mut rock = Rock::new(rock_type, &mut self.rock, self.top + 4);
 
         loop {
             match moves[mov] {
@@ -258,8 +259,8 @@ impl Chamber {
         let top = self.top();
         self.rocks
             .iter()
-            .copied()
             .filter(|(_, y)| top.abs_diff(*y) < n)
+            .copied()
             .map(|(x, y)| (x, top - y))
             .collect::<Vec<_>>()
             .tap_mut(|v| v.sort_unstable())
