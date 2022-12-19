@@ -4,6 +4,7 @@
     control_flow_enum,
     drain_filter,
     iter_array_chunks,
+    iter_collect_into,
     iter_partition_in_place,
     test
 )]
@@ -46,7 +47,7 @@ aoc_main!(
     14 => day14,
     15 => day15,
     16 => day16,
-    // 17 => day17,
+    17 => day17,
     // 18 => day18,
     // 19 => day19,
     // 20 => day20,
