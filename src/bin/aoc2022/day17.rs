@@ -1,5 +1,6 @@
 use aoc::PuzzleInput;
-use fxhash::FxHashSet;
+use fxhash::{FxBuildHasher, FxHashMap, FxHashSet};
+use tap::Tap;
 
 type Input = Pattern;
 type Output = usize;
@@ -16,8 +17,8 @@ fn part1(pattern: &Input) -> Output {
     let mut chamber = Chamber::new();
     let mut mov = 0;
 
-    for r in 0..2022 {
-        let rock_type = RockType::from(r % 5);
+    for it in 0..2022 {
+        let rock_type = RockType::from(it % 5);
         mov = chamber.add_rock(rock_type, &pattern.0, mov);
     }
 
@@ -25,11 +26,48 @@ fn part1(pattern: &Input) -> Output {
 }
 
 fn part2(pattern: &Input) -> Output {
-    0
+    let mut chamber = Chamber::new();
+    let mut mov = 0;
+    let mut cache = FxHashMap::default();
+    let mut extra = 0;
+
+    let iterations = 1_000_000_000_000;
+    let mut it = 0;
+
+    while it < iterations {
+        let rock_idx = it % 5;
+        let rock_type = RockType::from(rock_idx);
+        mov = chamber.add_rock(rock_type, &pattern.0, mov);
+        // Check if there is a repetition in the chamber.
+        // If we detect a repetition for the same shape
+        // and the same movement index, we can use that
+        // to skip iterations.
+        cache
+            .entry((rock_idx, mov, chamber.top_n(42)))
+            .and_modify(|(prev_i, prev_top)| {
+                // The increase in the height of the chamber.
+                let dt = chamber.top - *prev_top;
+                // The number of iterations it took to repeat the pattern.
+                let di = it - *prev_i;
+                // The number of times we can repeat the pattern before
+                // we hit the total number of iterations.
+                let reps = (iterations - it) / di;
+                // Skip iterations.
+                it += reps * di;
+                // Adjust the height of the chamber.
+                extra += reps * dt;
+            })
+            .or_insert((it, chamber.top));
+
+        it += 1;
+    }
+
+    chamber.top() + extra
 }
 
 const WIDTH: usize = 7;
 
+#[derive(Clone, Copy)]
 pub enum RockType {
     HLine,
     Cross,
@@ -46,7 +84,7 @@ impl From<usize> for RockType {
             2 => Self::LShap,
             3 => Self::VLine,
             4 => Self::Block,
-            _ => panic!(),
+            _ => unreachable!(),
         }
     }
 }
@@ -57,7 +95,7 @@ pub struct Rock {
 
 impl Rock {
     pub fn new(rock_type: RockType, y: usize) -> Self {
-        let mut points = FxHashSet::with_capacity_and_hasher(10, Default::default());
+        let mut points = FxHashSet::with_capacity_and_hasher(10, FxBuildHasher::default());
         match rock_type {
             RockType::HLine => {
                 points.insert((2, y));
@@ -163,6 +201,7 @@ impl Rock {
 pub struct Chamber {
     rocks: FxHashSet<(usize, usize)>,
     buffer: Vec<(usize, usize)>,
+    top: usize,
 }
 
 impl Chamber {
@@ -174,12 +213,12 @@ impl Chamber {
         Self {
             rocks,
             buffer: Vec::with_capacity(5),
+            top: 0,
         }
     }
 
     pub fn add_rock(&mut self, rock_type: RockType, moves: &[Move], mut mov: usize) -> usize {
-        let top = self.top();
-        let mut rock = Rock::new(rock_type, top + 4);
+        let mut rock = Rock::new(rock_type, self.top + 4);
 
         loop {
             match moves[mov] {
@@ -205,6 +244,7 @@ impl Chamber {
                 rock.points.drain().for_each(|p| {
                     self.rocks.insert(p);
                 });
+                self.top = self.top();
                 break mov;
             }
         }
@@ -212,6 +252,17 @@ impl Chamber {
 
     pub fn top(&self) -> usize {
         self.rocks.iter().map(|(_, y)| *y).max().unwrap_or(1)
+    }
+
+    pub fn top_n(&self, n: usize) -> Vec<(usize, usize)> {
+        let top = self.top();
+        self.rocks
+            .iter()
+            .copied()
+            .filter(|(_, y)| top.abs_diff(*y) < n)
+            .map(|(x, y)| (x, top - y))
+            .collect::<Vec<_>>()
+            .tap_mut(|v| v.sort_unstable())
     }
 }
 
@@ -255,14 +306,14 @@ mod tests {
         "#;
         let (res1, res2) = Solver::run_on(input);
         assert_eq!(res1, 3068);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 1514285714288);
     }
 
     #[test]
     fn test() {
         let (res1, res2) = Solver::run_on_input();
         assert_eq!(res1, 3197);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 1568513119571);
     }
 
     #[bench]
