@@ -83,19 +83,17 @@ impl Ord for Point {
 }
 
 impl Point {
-    fn surrounding<'a>(&'a self) -> Box<dyn Iterator<Item = Self> + 'a> {
-        Box::new(
-            [
-                (1, 0, 0),
-                (0, 1, 0),
-                (0, 0, 1),
-                (-1, 0, 0),
-                (0, -1, 0),
-                (0, 0, -1),
-            ]
-            .iter()
-            .map(move |delta| self + delta),
-        )
+    fn surrounding(&self) -> impl Iterator<Item = Self> + '_ {
+        [
+            (1, 0, 0),
+            (0, 1, 0),
+            (0, 0, 1),
+            (-1, 0, 0),
+            (0, -1, 0),
+            (0, 0, -1),
+        ]
+        .iter()
+        .map(move |delta| self + delta)
     }
 }
 
