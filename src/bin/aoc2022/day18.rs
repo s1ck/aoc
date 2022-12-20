@@ -1,6 +1,6 @@
 use atoi::FromRadix10;
 use fxhash::FxHashSet;
-use std::{convert::Infallible, ops::Add, str::FromStr};
+use std::{cmp::Ordering, convert::Infallible, ops::Add, str::FromStr};
 
 type Input = Point;
 type Output = usize;
@@ -17,25 +17,36 @@ fn part1(points: &[Input]) -> Output {
     let set = points.iter().collect::<FxHashSet<_>>();
     points
         .iter()
-        .map(|p| {
-            [
-                (1, 0, 0),
-                (0, 1, 0),
-                (0, 0, 1),
-                (-1, 0, 0),
-                (0, -1, 0),
-                (0, 0, -1),
-            ]
-            .iter()
-            .map(|delta| p + delta)
-            .filter(|p| !set.contains(p))
-            .count()
-        })
+        .map(|p| p.surrounding().filter(|p| !set.contains(p)).count())
         .sum()
 }
 
-fn part2(items: &[Input]) -> Output {
-    0
+fn part2(points: &[Input]) -> Output {
+    // Discover the surrounding space of the lava droplet using
+    // a bounded depth-first-search. Then we can check which
+    // cubes have a side facing the outside.
+    let p_min = points.iter().min().unwrap() + &(-1, -1, -1);
+    let p_max = points.iter().max().unwrap() + &(1, 1, 1);
+
+    let point_set = points.iter().collect::<FxHashSet<_>>();
+    let mut seen = FxHashSet::default();
+    let mut stack = vec![p_min];
+
+    loop {
+        let Some(next) = stack.pop() else {
+            break;
+        };
+
+        if next >= p_min && next <= p_max && !point_set.contains(&next) && !seen.contains(&next) {
+            seen.insert(next);
+            next.surrounding().for_each(|p| stack.push(p));
+        }
+    }
+
+    points
+        .iter()
+        .map(|p| p.surrounding().filter(|p| seen.contains(p)).count())
+        .sum()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -54,6 +65,37 @@ impl Add<&(isize, isize, isize)> for &Point {
             y: self.y + rhs.1,
             z: self.z + rhs.2,
         }
+    }
+}
+
+impl PartialOrd for Point {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Point {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let d0 = self.x.pow(2) + self.y.pow(2) + self.z.pow(2);
+        let d1 = other.x.pow(2) + other.y.pow(2) + other.z.pow(2);
+        d0.cmp(&d1)
+    }
+}
+
+impl Point {
+    fn surrounding<'a>(&'a self) -> Box<dyn Iterator<Item = Self> + 'a> {
+        Box::new(
+            [
+                (1, 0, 0),
+                (0, 1, 0),
+                (0, 0, 1),
+                (-1, 0, 0),
+                (0, -1, 0),
+                (0, 0, -1),
+            ]
+            .iter()
+            .map(move |delta| self + delta),
+        )
     }
 }
 
@@ -95,14 +137,14 @@ mod tests {
         "#;
         let (res1, res2) = Solver::run_on(input);
         assert_eq!(res1, 64);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 58);
     }
 
     #[test]
     fn test() {
         let (res1, res2) = Solver::run_on_input();
         assert_eq!(res1, 4418);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 2486);
     }
 
     #[bench]
