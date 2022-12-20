@@ -105,7 +105,6 @@ impl FromStr for Point {
         let (x, c_x) = isize::from_radix_10(s);
         let (y, c_y) = isize::from_radix_10(&s[c_x + 1..]);
         let (z, _) = isize::from_radix_10(&s[c_x + c_y + 2..]);
-        // Some points have 0 on some axis, avoid overflow.
         Ok(Self { x, y, z })
     }
 }
