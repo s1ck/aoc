@@ -1,11 +1,15 @@
-use std::{fmt::Display, ops::RangeInclusive};
+use std::{
+    fmt::Display,
+    ops::{ControlFlow, RangeInclusive},
+};
 
 use aoc::{lines, PuzzleInput};
 use atoi::FromRadix10Signed;
 use fxhash::FxHashSet;
+use tap::Tap;
 
 type Input = Map;
-type Output = Result;
+type Output = usize;
 
 register!(
     "input/day15.txt";
@@ -16,11 +20,19 @@ register!(
 );
 
 fn part1(map: &Input) -> Output {
-    Result(map.coverage(10), map.coverage(2_000_000))
+    if map.is_example() {
+        map.coverage(10)
+    } else {
+        map.coverage(2_000_000)
+    }
 }
 
 fn part2(map: &Input) -> Output {
-    Result(map.tuning_frequency(20), map.tuning_frequency(4_000_000))
+    if map.is_example() {
+        map.tuning_frequency(20)
+    } else {
+        map.tuning_frequency(4_000_000)
+    }
 }
 
 pub struct Result(usize, usize);
@@ -39,10 +51,6 @@ pub struct Sensor {
 }
 
 impl Sensor {
-    fn covers(&self, x: i32, y: i32) -> bool {
-        manhattan((self.x, self.y), (x, y)) <= self.range
-    }
-
     fn coverage_at_row(&self, y: i32) -> Option<RangeInclusive<i32>> {
         let dy = self.y.abs_diff(y) as i32;
         if dy > self.range {
@@ -60,6 +68,10 @@ pub struct Map {
 }
 
 impl Map {
+    fn is_example(&self) -> bool {
+        self.sensors.len() == 14
+    }
+
     fn coverage(&self, y: i32) -> usize {
         // Get the covered range for each sensor at row y.
         let mut ranges = self
@@ -87,29 +99,34 @@ impl Map {
     }
 
     fn tuning_frequency(&self, x_y_max: i32) -> usize {
-        // An undiscovered beacon must exist outside of the coverage
-        // of each sensor. We need to check the points that are range + 1
-        // away from each sensor. If the missing beacon is nearby,
-        // it must be at one of those range + 1 positions.
-        let map_range = 0..=x_y_max;
-        for Sensor { x, y, range } in &self.sensors {
-            for dx in 0..range + 2 {
-                let dy = range + 1 - dx;
-                for quadrant in [(-1, -1), (-1, 1), (1, 1), (1, -1)] {
-                    let xx = x + (dx * quadrant.0);
-                    let yy = y + (dy * quadrant.1);
+        for y in (0..x_y_max).rev() {
+            let ranges = self
+                .sensors
+                .iter()
+                .filter_map(|s| s.coverage_at_row(y))
+                .filter(|r| *r.start() <= x_y_max && *r.end() >= 0)
+                .collect::<Vec<_>>()
+                .tap_mut(|v| v.sort_unstable_by_key(|r| (*r.start(), *r.end())));
 
-                    if !map_range.contains(&xx) || !map_range.contains(&yy) {
-                        continue;
-                    }
+            let mut ranges = ranges.into_iter();
+            let first = ranges.next().unwrap();
 
-                    // if no sensor covers that point, it must be the beacon
-                    if !self.sensors.iter().any(|s| s.covers(xx, yy)) {
-                        return 4_000_000 * xx as usize + yy as usize;
-                    }
+            let res = ranges.try_fold(*first.end(), |end, range| {
+                let gap = end + 1;
+                if gap < *range.start() && gap > 0 && gap <= x_y_max {
+                    ControlFlow::Break(Ok(gap))
+                } else if end > x_y_max {
+                    ControlFlow::Break(Err(end))
+                } else {
+                    ControlFlow::Continue(end.max(*range.end()))
                 }
+            });
+
+            if let Some(Ok(x)) = res.break_value() {
+                return x as usize * 4_000_000 + y as usize;
             }
         }
+
         usize::MAX
     }
 }
@@ -176,15 +193,15 @@ mod tests {
         Sensor at x=20, y=1: closest beacon is at x=15, y=3
         "#;
         let (res1, res2) = Solver::run_on(input);
-        assert_eq!(res1.0, 26);
-        assert_eq!(res2.0, 56000011);
+        assert_eq!(res1, 26);
+        assert_eq!(res2, 56000011);
     }
 
     #[test]
     fn test() {
         let (res1, res2) = Solver::run_on_input();
-        assert_eq!(res1.1, 4961647);
-        assert_eq!(res2.1, 12274327017867);
+        assert_eq!(res1, 4961647);
+        assert_eq!(res2, 12274327017867);
     }
 
     #[bench]
