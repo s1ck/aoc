@@ -1,6 +1,6 @@
 use aoc::{lines, PuzzleInput};
 use atoi::FromRadix10;
-use fxhash::FxHashMap;
+use fxhash::{FxHashMap, FxHashSet};
 
 type Input = Ops;
 type Output = isize;
@@ -18,7 +18,21 @@ fn part1(ops: &Input) -> Output {
 }
 
 fn part2(ops: &Input) -> Output {
-    0
+    let mut nodes = FxHashSet::default();
+    ops.humns("root", &mut nodes);
+
+    let (op, target) = match &ops.ops["root"] {
+        Op::Add(l, r) | Op::Sub(l, r) | Op::Mul(l, r) | Op::Div(l, r) => {
+            if nodes.contains(l.as_str()) {
+                (l, ops.eval(r))
+            } else {
+                (r, ops.eval(l))
+            }
+        }
+        Op::Literal(_) => unreachable!(),
+    };
+
+    ops.eval_rev(op, target, &nodes).1.unwrap_or(Output::MAX)
 }
 
 pub struct Ops {
@@ -29,10 +43,99 @@ impl Ops {
     fn eval(&self, op: &str) -> isize {
         match &self.ops[op] {
             Op::Literal(n) => *n,
-            Op::Add(l, r) => self.eval(&l) + self.eval(&r),
-            Op::Sub(l, r) => self.eval(&l) - self.eval(&r),
-            Op::Mul(l, r) => self.eval(&l) * self.eval(&r),
-            Op::Div(l, r) => self.eval(&l) / self.eval(&r),
+            Op::Add(l, r) => self.eval(l) + self.eval(r),
+            Op::Sub(l, r) => self.eval(l) - self.eval(r),
+            Op::Mul(l, r) => self.eval(l) * self.eval(r),
+            Op::Div(l, r) => self.eval(l) / self.eval(r),
+        }
+    }
+
+    fn eval_rev(
+        &self,
+        op: &str,
+        target: Output,
+        nodes: &FxHashSet<&str>,
+    ) -> (Output, Option<Output>) {
+        match &self.ops[op] {
+            Op::Literal(n) if op == "humn" => (*n, Some(target)),
+            Op::Literal(n) => (*n, None),
+            Op::Add(l, r) => {
+                if nodes.contains(l.as_str()) {
+                    let rhs = self.eval(r);
+                    let (lhs, result) = self.eval_rev(l, target - rhs, nodes);
+                    (lhs + rhs, result)
+                } else if nodes.contains(r.as_str()) {
+                    let lhs = self.eval(l);
+                    let (rhs, result) = self.eval_rev(r, target - lhs, nodes);
+                    (lhs + rhs, result)
+                } else {
+                    (self.eval(op), None)
+                }
+            }
+            Op::Sub(l, r) => {
+                if nodes.contains(l.as_str()) {
+                    let rhs = self.eval(r);
+                    let (lhs, result) = self.eval_rev(l, target + rhs, nodes);
+                    (lhs - rhs, result)
+                } else if nodes.contains(r.as_str()) {
+                    let lhs = self.eval(l);
+                    let (rhs, result) = self.eval_rev(r, lhs - target, nodes);
+                    (lhs - rhs, result)
+                } else {
+                    (self.eval(op), None)
+                }
+            }
+            Op::Mul(l, r) => {
+                if nodes.contains(l.as_str()) {
+                    let rhs = self.eval(r);
+                    let (lhs, result) = self.eval_rev(l, target / rhs, nodes);
+                    (lhs * rhs, result)
+                } else if nodes.contains(r.as_str()) {
+                    let lhs = self.eval(l);
+                    let (rhs, result) = self.eval_rev(r, target / lhs, nodes);
+                    (lhs * rhs, result)
+                } else {
+                    (self.eval(op), None)
+                }
+            }
+            Op::Div(l, r) => {
+                if nodes.contains(l.as_str()) {
+                    let rhs = self.eval(r);
+                    let (lhs, result) = self.eval_rev(l, target * rhs, nodes);
+                    (lhs / rhs, result)
+                } else if nodes.contains(r.as_str()) {
+                    let lhs = self.eval(l);
+                    let (rhs, result) = self.eval_rev(r, lhs / target, nodes);
+                    (lhs / rhs, result)
+                } else {
+                    (self.eval(op), None)
+                }
+            }
+        }
+    }
+
+    // Adds all keys to `nodes` that are part of the humn sub-tree.
+    fn humns<'nodes, 'ops: 'nodes>(
+        &'ops self,
+        op: &str,
+        nodes: &'nodes mut FxHashSet<&'ops str>,
+    ) -> bool {
+        if op == "humn" {
+            return true;
+        }
+        match &self.ops[op] {
+            Op::Literal(_) => false,
+            Op::Add(l, r) | Op::Sub(l, r) | Op::Mul(l, r) | Op::Div(l, r) => {
+                if self.humns(l, nodes) {
+                    nodes.insert(l);
+                    true
+                } else if self.humns(r, nodes) {
+                    nodes.insert(r);
+                    true
+                } else {
+                    false
+                }
+            }
         }
     }
 }
@@ -103,14 +206,14 @@ mod tests {
         "#;
         let (res1, res2) = Solver::run_on(input);
         assert_eq!(res1, 152);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 301);
     }
 
     #[test]
     fn test() {
         let (res1, res2) = Solver::run_on_input();
         assert_eq!(res1, 118565889858886);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 3032671800353);
     }
 
     #[bench]
