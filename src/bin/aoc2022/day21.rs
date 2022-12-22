@@ -1,3 +1,5 @@
+use std::str;
+
 use aoc::{lines, PuzzleInput};
 use atoi::FromRadix10;
 use fxhash::{FxHashMap, FxHashSet};
@@ -19,102 +21,77 @@ fn part1(ops: &Input) -> Output {
 
 fn part2(ops: &Input) -> Output {
     let mut nodes = FxHashSet::default();
+    // Figure out all monkeys that lead to `humn`.
     ops.humns("root", &mut nodes);
-
+    // Figure out the target value and if its produced
+    // by left-hand side or right-hand side.
     let (op, target) = match &ops.ops["root"] {
-        Op::Add(l, r) | Op::Sub(l, r) | Op::Mul(l, r) | Op::Div(l, r) => {
-            if nodes.contains(l.as_str()) {
-                (l, ops.eval(r))
+        Monkey::Binary(_, lhs, rhs) => {
+            if nodes.contains(lhs.as_str()) {
+                (lhs, ops.eval(rhs))
             } else {
-                (r, ops.eval(l))
+                (rhs, ops.eval(lhs))
             }
         }
-        Op::Literal(_) => unreachable!(),
+        Monkey::Literal(_) => unreachable!(),
     };
-
-    ops.eval_rev(op, target, &nodes).1.unwrap_or(Output::MAX)
+    // Evaluate the formula in reverse to arrive at the same target.
+    ops.eval_rev(op, target, &nodes).1.expect("No solution")
 }
 
 pub struct Ops {
-    ops: FxHashMap<String, Op>,
+    ops: FxHashMap<String, Monkey>,
 }
 
 impl Ops {
     fn eval(&self, op: &str) -> isize {
         match &self.ops[op] {
-            Op::Literal(n) => *n,
-            Op::Add(l, r) => self.eval(l) + self.eval(r),
-            Op::Sub(l, r) => self.eval(l) - self.eval(r),
-            Op::Mul(l, r) => self.eval(l) * self.eval(r),
-            Op::Div(l, r) => self.eval(l) / self.eval(r),
+            Monkey::Literal(n) => *n,
+            Monkey::Binary(op, lhs, rhs) => match op {
+                Op::Add => self.eval(lhs) + self.eval(rhs),
+                Op::Sub => self.eval(lhs) - self.eval(rhs),
+                Op::Mul => self.eval(lhs) * self.eval(rhs),
+                Op::Div => self.eval(lhs) / self.eval(rhs),
+            },
         }
     }
 
     fn eval_rev(
         &self,
-        op: &str,
+        op_key: &str,
         target: Output,
         nodes: &FxHashSet<&str>,
     ) -> (Output, Option<Output>) {
-        match &self.ops[op] {
-            Op::Literal(n) if op == "humn" => (*n, Some(target)),
-            Op::Literal(n) => (*n, None),
-            Op::Add(l, r) => {
-                if nodes.contains(l.as_str()) {
-                    let rhs = self.eval(r);
-                    let (lhs, result) = self.eval_rev(l, target - rhs, nodes);
-                    (lhs + rhs, result)
-                } else if nodes.contains(r.as_str()) {
-                    let lhs = self.eval(l);
-                    let (rhs, result) = self.eval_rev(r, target - lhs, nodes);
-                    (lhs + rhs, result)
+        match &self.ops[op_key] {
+            Monkey::Literal(n) if op_key == "humn" => (*n, Some(target)),
+            Monkey::Literal(n) => (*n, None),
+            Monkey::Binary(op, lhs, rhs) => {
+                if nodes.contains(lhs.as_str()) {
+                    let rhs = self.eval(rhs);
+                    let target = match op {
+                        Op::Add => target - rhs,
+                        Op::Sub => target + rhs,
+                        Op::Mul => target / rhs,
+                        Op::Div => target * rhs,
+                    };
+                    self.eval_rev(lhs, target, nodes)
+                } else if nodes.contains(rhs.as_str()) {
+                    let lhs = self.eval(lhs);
+                    let target = match op {
+                        Op::Add => target - lhs,
+                        Op::Sub => lhs - target,
+                        Op::Mul => target / lhs,
+                        Op::Div => lhs / target,
+                    };
+                    self.eval_rev(rhs, target, nodes)
                 } else {
-                    (self.eval(op), None)
-                }
-            }
-            Op::Sub(l, r) => {
-                if nodes.contains(l.as_str()) {
-                    let rhs = self.eval(r);
-                    let (lhs, result) = self.eval_rev(l, target + rhs, nodes);
-                    (lhs - rhs, result)
-                } else if nodes.contains(r.as_str()) {
-                    let lhs = self.eval(l);
-                    let (rhs, result) = self.eval_rev(r, lhs - target, nodes);
-                    (lhs - rhs, result)
-                } else {
-                    (self.eval(op), None)
-                }
-            }
-            Op::Mul(l, r) => {
-                if nodes.contains(l.as_str()) {
-                    let rhs = self.eval(r);
-                    let (lhs, result) = self.eval_rev(l, target / rhs, nodes);
-                    (lhs * rhs, result)
-                } else if nodes.contains(r.as_str()) {
-                    let lhs = self.eval(l);
-                    let (rhs, result) = self.eval_rev(r, target / lhs, nodes);
-                    (lhs * rhs, result)
-                } else {
-                    (self.eval(op), None)
-                }
-            }
-            Op::Div(l, r) => {
-                if nodes.contains(l.as_str()) {
-                    let rhs = self.eval(r);
-                    let (lhs, result) = self.eval_rev(l, target * rhs, nodes);
-                    (lhs / rhs, result)
-                } else if nodes.contains(r.as_str()) {
-                    let lhs = self.eval(l);
-                    let (rhs, result) = self.eval_rev(r, lhs / target, nodes);
-                    (lhs / rhs, result)
-                } else {
-                    (self.eval(op), None)
+                    (self.eval(op_key), None)
                 }
             }
         }
     }
 
-    // Adds all keys to `nodes` that are part of the humn sub-tree.
+    // Adds all keys to `nodes` that are on the path from `op` to `humn`.
     fn humns<'nodes, 'ops: 'nodes>(
         &'ops self,
         op: &str,
@@ -124,13 +101,13 @@ impl Ops {
             return true;
         }
         match &self.ops[op] {
-            Op::Literal(_) => false,
-            Op::Add(l, r) | Op::Sub(l, r) | Op::Mul(l, r) | Op::Div(l, r) => {
-                if self.humns(l, nodes) {
-                    nodes.insert(l);
+            Monkey::Literal(_) => false,
+            Monkey::Binary(_, lhs, rhs) => {
+                if self.humns(lhs, nodes) {
+                    nodes.insert(lhs);
                     true
-                } else if self.humns(r, nodes) {
-                    nodes.insert(r);
+                } else if self.humns(rhs, nodes) {
+                    nodes.insert(rhs);
                     true
                 } else {
                     false
@@ -141,41 +118,46 @@ impl Ops {
 }
 
 #[derive(Debug)]
-pub enum Op {
+pub enum Monkey {
     Literal(isize),
-    Add(String, String),
-    Sub(String, String),
-    Mul(String, String),
-    Div(String, String),
+    Binary(Op, String, String),
+}
+
+#[derive(Debug)]
+pub enum Op {
+    Add,
+    Sub,
+    Mul,
+    Div,
 }
 
 impl PuzzleInput for Ops {
     type Out = Self;
 
     fn from_input(input: &str) -> Self::Out {
-        let ops = lines(input)
+        let monkeys = lines(input)
             .map(|l| {
-                let l = l.as_bytes();
-                let k = String::from_utf8_lossy(&l[0..4]).to_string();
-                let (n, consumed) = isize::from_radix_10(&l[6..]);
+                let b = l.as_bytes();
+                let k = unsafe { str::from_utf8_unchecked(&b[0..4]) }.to_owned();
+                let (n, consumed) = isize::from_radix_10(&b[6..]);
                 if consumed > 0 {
-                    (k, Op::Literal(n))
+                    (k, Monkey::Literal(n))
                 } else {
-                    let lhs = String::from_utf8_lossy(&l[6..10]).to_string();
-                    let rhs = String::from_utf8_lossy(&l[13..17]).to_string();
-                    let op = match &l[11] {
-                        b'+' => Op::Add(lhs, rhs),
-                        b'-' => Op::Sub(lhs, rhs),
-                        b'*' => Op::Mul(lhs, rhs),
-                        b'/' => Op::Div(lhs, rhs),
+                    let lhs = unsafe { str::from_utf8_unchecked(&b[6..10]) }.to_owned();
+                    let rhs = unsafe { str::from_utf8_unchecked(&b[13..17]) }.to_owned();
+                    let op = match &b[11] {
+                        b'+' => Op::Add,
+                        b'-' => Op::Sub,
+                        b'*' => Op::Mul,
+                        b'/' => Op::Div,
                         _ => unreachable!(),
                     };
-                    (k, op)
+                    (k, Monkey::Binary(op, lhs, rhs))
                 }
             })
             .collect::<FxHashMap<_, _>>();
 
-        Self { ops }
+        Self { ops: monkeys }
     }
 }
 
