@@ -13,34 +13,28 @@ endif
 
 YEAR:= 2022
 APP := aoc$(YEAR)
-
 CARGOFLAGS ?=
 
-# generate release build
+# Generate release build
+
 all: build
 build: target/release/$(APP)
 
-# clean build output
+# Clean build output
+
 clean: .cargoinstalled
 > cargo clean
 
-# benchmark all days
-bench: .cargoinstalled
-> cargo bench --bin ${APP}
+# Update the readme
 
-# benchmark specific day
-bench_%: .cargoinstalled
-> cargo bench --bin $(APP) -- day$*::tests::
-
-# update the readme
 readme: README.md
 
 .PHONY: all build clean readme
 
-### build targets
+### Build targets
 
-target/release/%: .cargoinstalled Cargo.toml Cargo.lock src/lib.rs $(shell find src/bin/$* -type f)
-> RUSTFLAGS="-C link-arg=-s -C opt-level=3 -C target-cpu=native --emit=asm" cargo build $(CARGOFLAGS) --bin $* --release
+target/release/%: .cargoinstalled Cargo.toml Cargo.lock src/lib.rs src/bin/%/*.rs src/bin/%/input/*.txt
+> cargo build $(CARGOFLAGS) --bin $* --release
 
 %_bench.jsonld: target/release/%
 > cargo bench --quiet --bin $* -- -Z unstable-options --format json > $@
@@ -62,12 +56,32 @@ README.md: README.md.tpl aoc$(YEAR)_bench.md
 > @fi
 > touch .cargoinstalled
 
-# download inputs
+# Day specific targets
+
+# Download input
+
 i%:
 > curl --cookie "session=$$(cat .sessioncookie)" "https://adventofcode.com/$(YEAR)/day/$*/input" > src/bin/$(APP)/input/day$*.txt
 > bat src/bin/$(APP)/input/day$*.txt
 
-# generate source file
+# Generate source file
+
 d%:
 > m4 -D day=day$* day.rs.tpl > src/bin/$(APP)/day$*.rs
 > hx src/bin/$(APP)/day$*.rs
+
+# Run tests
+
+ex%:
+> cargo watch -x 'test --bin $(APP) -- day$*::tests::test_ex --nocapture'
+
+run%:
+> cargo watch -x 'test --release --bin $(APP) -- day$*::tests::test --exact --nocapture'
+
+t%:
+> cargo watch -x 'test --release --bin $(APP) -- day$*::tests::test --nocapture'
+
+# Run benchmarks
+
+b%:
+> cargo bench --bin $(APP) day$*::tests::bench
