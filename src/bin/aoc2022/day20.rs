@@ -14,7 +14,7 @@ fn part1(items: &[Input]) -> Output {
 }
 
 fn part2(items: &[Input]) -> Output {
-    mix(items, 811589153, 10)
+    mix(items, 811_589_153, 10)
 }
 
 fn mix(items: &[Input], dec_key: i64, rounds: usize) -> Output {
