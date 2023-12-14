@@ -2,7 +2,6 @@
     array_chunks,
     array_windows,
     control_flow_enum,
-    drain_filter,
     iter_partition_in_place,
     slice_take,
     test

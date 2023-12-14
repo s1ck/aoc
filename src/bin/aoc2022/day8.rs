@@ -97,7 +97,7 @@ fn part2(forest: &Input) -> Output {
                 view += 1;
                 k += 1;
             }
-            views[(stride * (j % stride) + (j / stride))] *= view;
+            views[stride * (j % stride) + (j / stride)] *= view;
         }
         for j in (i..i + stride).rev() {
             // view to left
@@ -129,7 +129,7 @@ fn part2(forest: &Input) -> Output {
                 view += 1;
                 k -= 1;
             }
-            views[(stride * (j % stride) + (j / stride))] *= view;
+            views[stride * (j % stride) + (j / stride)] *= view;
         }
     }
 
