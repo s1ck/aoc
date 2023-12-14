@@ -11,7 +11,7 @@ ifeq ($(origin .RECIPEPREFIX), undefined)
 endif
 .RECIPEPREFIX = >
 
-YEAR:= 2022
+YEAR:= 2023
 APP := aoc$(YEAR)
 CARGOFLAGS ?=
 
