@@ -19,8 +19,16 @@ fn part1(games: &[Input]) -> Output {
         .sum()
 }
 
-fn part2(items: &[Input]) -> Output {
-    0
+fn part2(games: &[Input]) -> Output {
+    games
+        .iter()
+        .map(|game| {
+            game.sets
+                .iter()
+                .fold(Set::default(), |agg, next| agg.max(next))
+                .power()
+        })
+        .sum()
 }
 
 pub struct Game {
@@ -28,6 +36,7 @@ pub struct Game {
     sets: Vec<Set>,
 }
 
+#[derive(Default)]
 pub struct Set {
     red: usize,
     green: usize,
@@ -37,6 +46,18 @@ pub struct Set {
 impl Set {
     fn is_valid(&self) -> bool {
         self.red <= 12 && self.green <= 13 && self.blue <= 14
+    }
+
+    fn power(&self) -> usize {
+        self.red * self.green * self.blue
+    }
+
+    fn max(self, other: &Self) -> Self {
+        Self {
+            red: usize::max(self.red, other.red),
+            green: usize::max(self.green, other.green),
+            blue: usize::max(self.blue, other.blue),
+        }
     }
 }
 
@@ -94,14 +115,14 @@ mod tests {
         "#;
         let (res1, res2) = Solver::run_on(input);
         assert_eq!(res1, 8);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 2286);
     }
 
     #[test]
     fn test() {
         let (res1, res2) = Solver::run_on_input();
         assert_eq!(res1, 2061);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 72596);
     }
 
     #[bench]
