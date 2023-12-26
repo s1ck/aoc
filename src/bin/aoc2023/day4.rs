@@ -17,8 +17,19 @@ fn part1(cards: &[Input]) -> Output {
     cards.iter().map(Card::points).sum()
 }
 
-fn part2(items: &[Input]) -> Output {
-    0
+fn part2(cards: &[Input]) -> Output {
+    cards
+        .iter()
+        .enumerate()
+        .fold(vec![1_i32; cards.len()], |mut counts, (idx, card)| {
+            let (left, right) = counts.split_at_mut(idx + 1);
+            for count in &mut right[0..card.matches()] {
+                *count += left[idx];
+            }
+            counts
+        })
+        .iter()
+        .sum()
 }
 
 pub struct Card {
@@ -27,8 +38,12 @@ pub struct Card {
 }
 
 impl Card {
+    fn matches(&self) -> usize {
+        self.win.intersection(&self.own).count()
+    }
+
     fn points(&self) -> i32 {
-        match self.win.intersection(&self.own).count() as u32 {
+        match self.matches() as u32 {
             0 => 0,
             n => 2_i32.pow(n - 1),
         }
@@ -76,14 +91,14 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11
         "#;
         let (res1, res2) = Solver::run_on(input);
         assert_eq!(res1, 13);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 30);
     }
 
     #[test]
     fn test() {
         let (res1, res2) = Solver::run_on_input();
         assert_eq!(res1, 20855);
-        assert_eq!(res2, 0);
+        assert_eq!(res2, 5489600);
     }
 
     #[bench]
