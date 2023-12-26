@@ -66,12 +66,12 @@ fn solve(schematic: &Input) -> (usize, usize) {
             } else if number > 0 {
                 if is_adjacent {
                     sum += number;
-                    gears_local.iter().cloned().for_each(|gear| {
+                    gears_local.iter().copied().for_each(|gear| {
                         gears
                             .entry(gear)
                             .and_modify(|nums: &mut Vec<u32>| nums.push(number))
-                            .or_insert(vec![number]);
-                    })
+                            .or_insert_with(|| vec![number]);
+                    });
                 }
                 number = 0;
                 is_adjacent = false;
@@ -123,7 +123,7 @@ impl PuzzleInput for Schematic {
                     .chars()
                     .map(|c| match c {
                         '.' => Cell::Blank,
-                        d if d.is_digit(10) => Cell::Number(d.to_digit(10).unwrap()),
+                        d if d.is_ascii_digit() => Cell::Number(d.to_digit(10).unwrap()),
                         d => Cell::Symbol(d),
                     })
                     .collect::<Vec<_>>()

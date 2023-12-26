@@ -66,7 +66,7 @@ fn parse_packet(p: &str) -> (usize, usize, usize) {
             offset += 15;
             let boundary = offset + bits as usize;
 
-            while offset < boundary as usize {
+            while offset < boundary {
                 let (version, read, value) = parse_packet(&p[offset..]);
                 values.push(value);
                 offset += read;

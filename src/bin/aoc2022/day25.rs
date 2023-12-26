@@ -40,7 +40,7 @@ impl ToString for Snafu {
                 return;
             }
             match n % 5 {
-                0 | 1 | 2 => {
+                0..=2 => {
                     res.push_str(to_str(n % 5));
                     to_snafu(n / 5, res);
                 }

@@ -19,7 +19,7 @@ fn part1(map: &Input) -> Output {
 }
 
 fn part2(map: &Input) -> Output {
-    let sources = map.map.iter().enumerate().flat_map(|(i, row)| {
+    let sources = map.rows.iter().enumerate().flat_map(|(i, row)| {
         row.iter().enumerate().filter_map(move |(j, b)| match b {
             b'a' => Some((i, j)),
             _ => None,
@@ -36,7 +36,7 @@ where
     let mut queue = VecDeque::new();
 
     let (start, end) = (map.start, map.end);
-    let map = &map.map;
+    let map = &map.rows;
     let width = 0..map[0].len() as isize;
     let height = 0..map.len() as isize;
     let deltas = [(-1, 0), (1, 0), (0, -1), (0, 1)];
@@ -70,7 +70,7 @@ where
 
 #[derive(Debug)]
 pub struct Map {
-    map: Vec<Vec<u8>>,
+    rows: Vec<Vec<u8>>,
     start: (usize, usize),
     end: (usize, usize),
 }
@@ -85,7 +85,7 @@ impl PuzzleInput for Map {
         let mut start = (0, 0);
         let mut end = (0, 0);
 
-        let map = lines
+        let rows = lines
             .enumerate()
             .map(|(i, line)| {
                 line.as_bytes()
@@ -106,7 +106,7 @@ impl PuzzleInput for Map {
             })
             .collect::<Vec<_>>();
 
-        Self { map, start, end }
+        Self { rows, start, end }
     }
 }
 

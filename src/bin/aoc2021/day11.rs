@@ -82,10 +82,7 @@ impl<const N: usize> Field<N> {
             (row + 1, col),
             (row + 1, col + 1),
         ] {
-            if let Some(n) = self
-                .get_mut(n_row as usize)
-                .and_then(|row| row.get_mut(n_col as usize))
-            {
+            if let Some(n) = self.get_mut(n_row).and_then(|row| row.get_mut(n_col)) {
                 if *n > 0 {
                     *n += 1;
 

@@ -53,9 +53,7 @@ fn compute(cubes: &mut [Cube]) -> (usize, usize) {
     }
 
     // find paths from each cube to cube 0 and transform according to rotations
-    let g: UndirectedCsrGraph<usize> = GraphBuilder::new()
-        .edges(rotations.keys().copied().collect::<Vec<_>>())
-        .build();
+    let g: UndirectedCsrGraph<usize> = GraphBuilder::new().edges(rotations.keys().copied()).build();
 
     let mut beacons = cubes[0].points.iter().copied().collect::<FxHashSet<_>>();
     let mut scanners = vec![Vector::default(); cubes.len()];
@@ -310,7 +308,7 @@ pub struct Cube {
 impl std::fmt::Display for Cube {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Scanner: {}", self.id)?;
-        self.points.iter().try_for_each(|p| writeln!(f, "{}", p))?;
+        self.points.iter().try_for_each(|p| writeln!(f, "{p}"))?;
         Ok(())
     }
 }

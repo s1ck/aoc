@@ -59,7 +59,7 @@ enum Direction {
 impl std::fmt::Display for Tree {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Reg(v) => write!(f, "{}", v),
+            Self::Reg(v) => write!(f, "{v}"),
             Self::Pair(pair) => write!(f, "[{},{}]", pair.0, pair.1),
         }
     }
@@ -89,9 +89,9 @@ impl Tree {
 
     fn insert(&mut self, value: u8, d: Direction) {
         match (self, d) {
-            (Tree::Reg(v), _) => *v += value,
-            (Tree::Pair(pair), Direction::Left) => pair.0.insert(value, d),
-            (Tree::Pair(pair), Direction::Right) => pair.1.insert(value, d),
+            (Self::Reg(v), _) => *v += value,
+            (Self::Pair(pair), Direction::Left) => pair.0.insert(value, d),
+            (Self::Pair(pair), Direction::Right) => pair.1.insert(value, d),
         }
     }
 
@@ -130,12 +130,12 @@ impl Tree {
 
     fn split(&mut self) -> bool {
         match self {
-            Tree::Reg(v) if *v > 9 => {
+            Self::Reg(v) if *v > 9 => {
                 *self = Self::of((*v / 2, (*v + 1) / 2));
                 true
             }
-            Tree::Reg(_) => false,
-            Tree::Pair(pair) => pair.0.split() || pair.1.split(),
+            Self::Reg(_) => false,
+            Self::Pair(pair) => pair.0.split() || pair.1.split(),
         }
     }
 }
@@ -169,7 +169,7 @@ fn parse(bytes: &[u8]) -> (Tree, &[u8]) {
             (Tree::Pair(Box::new((lhs, rhs))), &rem[1..]) // skip ]
         }
         b'0'..=b'9' => (Tree::Reg(bytes[0] - b'0'), &bytes[1..]),
-        c => panic!("unexpected: '{}'", c),
+        c => panic!("unexpected: '{c}'"),
     }
 }
 #[cfg(test)]

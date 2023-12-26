@@ -22,7 +22,6 @@ fn part2(positions: &[i32]) -> Output {
     let max_position = positions.iter().max().unwrap();
 
     (0..*max_position)
-        .into_iter()
         .map(|x| {
             positions
                 .iter()

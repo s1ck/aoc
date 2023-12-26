@@ -22,12 +22,7 @@ fn part1(games: &[Input]) -> Output {
 fn part2(games: &[Input]) -> Output {
     games
         .iter()
-        .map(|game| {
-            game.sets
-                .iter()
-                .fold(Set::default(), |agg, next| agg.max(next))
-                .power()
-        })
+        .map(|game| game.sets.iter().fold(Set::default(), Set::max).power())
         .sum()
 }
 

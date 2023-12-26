@@ -67,11 +67,10 @@ impl Passport {
             .get("hgt")
             .filter(|hgt| {
                 let (n, unit) = hgt.split_at(hgt.len() - 2);
-                match (n.parse::<u8>().ok(), unit) {
-                    (Some(59..=76), "in") => true,
-                    (Some(150..=193), "cm") => true,
-                    _ => false,
-                }
+                matches!(
+                    (n.parse::<u8>().ok(), unit),
+                    (Some(59..=76), "in") | (Some(150..=193), "cm")
+                )
             })
             .is_some();
 
@@ -79,7 +78,7 @@ impl Passport {
             .get("hcl")
             .filter(|hcl| hcl.len() == 7)
             .filter(|hcl| &hcl[0..1] == "#")
-            .filter(|hcl| *&hcl[1..].bytes().all(|b| b.is_ascii_hexdigit()))
+            .filter(|hcl| hcl[1..].bytes().all(|b| b.is_ascii_hexdigit()))
             .is_some();
 
         let ecl = self

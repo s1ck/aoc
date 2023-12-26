@@ -58,10 +58,7 @@ fn part2(cuboids: &[Input]) -> Output {
         }
     }
 
-    clippings
-        .iter()
-        .map(|clipping| clipping.volume() as usize)
-        .sum()
+    clippings.iter().map(Cuboid::volume).sum()
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

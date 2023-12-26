@@ -12,8 +12,12 @@ register!(
 fn part1(items: &[Input]) -> Output {
     items
         .iter()
-        .map(|line| line.chars().filter(|c| c.is_digit(10)).collect::<Vec<_>>())
-        .filter(|line| line.len() > 0)
+        .map(|line| {
+            line.chars()
+                .filter(char::is_ascii_digit)
+                .collect::<Vec<_>>()
+        })
+        .filter(|line| !line.is_empty())
         .map(|line| format!("{}{}", line[0], line[line.len() - 1]))
         .map(|num| num.parse::<usize>().unwrap())
         .sum()
@@ -22,8 +26,8 @@ fn part1(items: &[Input]) -> Output {
 fn part2(items: &[Input]) -> Output {
     items
         .iter()
-        .map(line_to_vec)
-        .filter(|line| line.len() > 0)
+        .map(|line| line_to_vec(line))
+        .filter(|line| !line.is_empty())
         .map(|line| format!("{}{}", line[0], line[line.len() - 1]))
         .map(|num| num.parse::<usize>().unwrap())
         .sum()
@@ -33,11 +37,11 @@ const NUMBERS: [&str; 9] = [
     "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
 ];
 
-fn line_to_vec(line: &String) -> Vec<char> {
+fn line_to_vec(line: &str) -> Vec<char> {
     line.chars()
         .enumerate()
         .filter_map(|(idx, c)| {
-            if c.is_digit(10) {
+            if c.is_ascii_digit() {
                 Some(c)
             } else {
                 for (digit, num) in NUMBERS.iter().enumerate() {

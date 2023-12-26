@@ -24,7 +24,7 @@ fn part1(mut players: Vec<Player>) -> Output {
             let add = keep + on + rollin;
             let score = (p.pos as usize - 1 + add) % 10 + 1;
 
-            p.score += score as usize;
+            p.score += score;
             p.pos = score as u8;
 
             if p.score >= 1000 {

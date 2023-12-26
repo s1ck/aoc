@@ -53,7 +53,7 @@ impl FromStr for Line {
         let (from, to) = (from.parse::<u8>()?, to.parse::<u8>()?);
         let needle = s.next().unwrap().as_bytes()[0];
         let haystack = s.next().unwrap().as_bytes();
-        let count = haystack.iter().filter(|c| **c == needle).count();
+        let count = bytecount::count(haystack, needle);
         let from = usize::from(from);
         let to = usize::from(to);
         let in_range = count >= from && count <= to;

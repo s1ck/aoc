@@ -15,7 +15,7 @@ register!(
 
 fn part1(
     Input {
-        field,
+        values: field,
         height,
         width,
     }: &Input,
@@ -35,7 +35,7 @@ fn part1(
 
 fn part2(
     Input {
-        field,
+        values: field,
         height,
         width,
     }: &Input,
@@ -91,16 +91,16 @@ fn part2(
 const LINE_COUNT: usize = 323;
 
 pub struct Field {
-    field: [u32; LINE_COUNT],
+    values: [u32; LINE_COUNT],
     height: usize,
     width: usize,
 }
 
 impl Display for Field {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.field[0..self.height]
+        self.values[0..self.height]
             .iter()
-            .try_for_each(|line| writeln!(f, "{:032b}", line))
+            .try_for_each(|line| writeln!(f, "{line:032b}"))
     }
 }
 
@@ -108,7 +108,7 @@ impl PuzzleInput for Field {
     type Out = Self;
 
     fn from_input(input: &str) -> Self::Out {
-        let mut field = [0_u32; LINE_COUNT];
+        let mut values = [0_u32; LINE_COUNT];
         let lines = lines(input);
         let mut width = 0;
         let mut height = 0;
@@ -121,11 +121,11 @@ impl PuzzleInput for Field {
             for (j, &b) in line.as_bytes().iter().enumerate() {
                 enc |= u32::from(b == b'#') << (31 - j);
             }
-            field[i] = enc;
+            values[i] = enc;
         }
 
         Self {
-            field,
+            values,
             height: height + 1,
             width,
         }

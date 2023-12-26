@@ -19,7 +19,7 @@ fn part1(items: &[Input]) -> Output {
 
 fn part2(items: &[Input]) -> Output {
     let mut seats = items.iter().map(|pass| seat_id(pass)).collect::<Vec<_>>();
-    seats.sort();
+    seats.sort_unstable();
     seats.array_windows().find(|[l, r]| r - l > 1).unwrap()[0] + 1
 }
 
